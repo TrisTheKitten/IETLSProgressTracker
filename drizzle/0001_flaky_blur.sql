@@ -1,0 +1,1 @@
+ALTER TABLE `practice_sets` DROP COLUMN `priority`;
