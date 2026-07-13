@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Newsreader } from "next/font/google";
 import "./globals.css";
 import SidebarNav from "@/components/SidebarNav";
+import { LocalStoreProvider } from "@/components/LocalStoreProvider";
 
 const ledgerSerif = Newsreader({
   subsets: ["latin"],
@@ -29,16 +30,18 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <SidebarNav />
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="min-h-dvh w-full min-w-0 scroll-mt-16 lg:pl-60 xl:pl-72"
-        >
-          <div className="mx-auto w-full min-w-0 max-w-[88rem] px-5 pb-12 pt-7 sm:px-8 sm:pt-9 lg:px-10 lg:pb-16 lg:pt-10 xl:px-14">
-            {children}
-          </div>
-        </main>
+        <LocalStoreProvider>
+          <SidebarNav />
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="min-h-dvh w-full min-w-0 scroll-mt-16 lg:pl-60 xl:pl-72"
+          >
+            <div className="mx-auto w-full min-w-0 max-w-[88rem] px-5 pb-12 pt-7 sm:px-8 sm:pt-9 lg:px-10 lg:pb-16 lg:pt-10 xl:px-14">
+              {children}
+            </div>
+          </main>
+        </LocalStoreProvider>
       </body>
     </html>
   );

@@ -156,6 +156,80 @@
   outline-offset: 3px;
 }
 
+/* Shared interactive hover language — soft wash, hairline accent, no bounce */
+@layer components {
+  .ui-hover-cell {
+    transition:
+      background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ui-hover-cell:hover {
+    background-color: color-mix(in oklch, var(--secondary) 72%, transparent);
+  }
+
+  .ui-hover-row {
+    position: relative;
+    transition: background-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ui-hover-row::before {
+    content: "";
+    position: absolute;
+    inset-block: 0.65rem;
+    left: 0;
+    width: 1.5px;
+    background: var(--primary);
+    opacity: 0;
+    transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ui-hover-row:hover {
+    background-color: color-mix(in oklch, var(--secondary) 68%, transparent);
+  }
+
+  .ui-hover-row:hover::before {
+    opacity: 0.85;
+  }
+
+  .ui-hover-panel {
+    transition:
+      border-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ui-hover-panel:hover {
+    border-color: color-mix(in oklch, var(--border) 55%, var(--foreground) 18%);
+    background-color: color-mix(in oklch, var(--card) 88%, var(--secondary));
+    box-shadow: 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+  }
+
+  .ui-hover-link-icon {
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .group\/link:hover .ui-hover-link-icon,
+  .group:hover .ui-hover-link-icon {
+    transform: translate(1.5px, -1.5px);
+  }
+
+  .ui-hover-actions {
+    transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .ui-hover-actions {
+      opacity: 0.45;
+    }
+
+    .group:hover .ui-hover-actions,
+    .group:focus-within .ui-hover-actions {
+      opacity: 1;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

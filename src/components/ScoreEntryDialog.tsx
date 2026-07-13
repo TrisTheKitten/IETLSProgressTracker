@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { convertRawToBand, calculateOverallBand } from "@/lib/ielts";
-import { saveAttempt } from "@/app/actions";
+import { useLocalStore } from "@/components/LocalStoreProvider";
 import {
   AlertCircle,
   BookOpen,
@@ -120,6 +120,7 @@ export default function ScoreEntryDialog({
   targetOverall,
   defaultTestType = "Academic",
 }: ScoreEntryDialogProps) {
+  const { saveAttempt } = useLocalStore();
   const [testType, setTestType] = useState<TestType>(defaultTestType);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

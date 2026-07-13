@@ -1,22 +1,24 @@
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { eq, asc, or, and } from "drizzle-orm";
+"use client";
+
 import DashboardClient from "@/components/DashboardClient";
+import { useLocalStore } from "@/components/LocalStoreProvider";
 import { calculateOverallBand } from "@/lib/ielts";
-import { getActiveGoals, getAttemptsWithSetAndBook, getDefaultTestType } from "@/db/queries";
 import { goalTargetForSkill, SKILLS, type Skill } from "@/lib/domain";
+import {
+  getActiveGoals,
+  getAttemptsWithSetAndBook,
+  getDefaultTestType,
+  getSyllabusSetsForTestType,
+  getUpcomingSetsForTestType,
+} from "@/lib/local-store";
 import { averageScoresBySkill, latestScoresBySkill } from "@/lib/stats";
 
-export const dynamic = "force-dynamic";
+export default function DashboardPage() {
+  const { data } = useLocalStore();
+  const goals = getActiveGoals(data);
+  const defaultTestType = getDefaultTestType(data);
+  const allAttemptsRaw = getAttemptsWithSetAndBook(data);
 
-export default async function DashboardPage() {
-  const goals = getActiveGoals();
-  const defaultTestType = getDefaultTestType();
-
-  // 2. Fetch Attempts with sets & books
-  const allAttemptsRaw = getAttemptsWithSetAndBook();
-
-  // Map to dashboard structure
   const recentAttempts = allAttemptsRaw.map((row) => ({
     id: row.attempt.id,
     skill: row.attempt.skill,
@@ -30,7 +32,6 @@ export default async function DashboardPage() {
     testNumber: row.set?.testNumber || undefined,
   }));
 
-  // 3. Compute Stats
   const scoredAttempts = allAttemptsRaw.map(({ attempt }) => attempt);
   const latestScores = latestScoresBySkill(scoredAttempts);
   const averageScores = averageScoresBySkill(scoredAttempts);
@@ -42,17 +43,7 @@ export default async function DashboardPage() {
     speaking: latestScores.Speaking,
   });
 
-  // Completion counts — only sets for the user's chosen exam stream (Academic or General Training)
-  const syllabusSetsRaw = await db.select({
-    set: schema.practiceSets,
-    book: schema.cambridgeBooks,
-  })
-    .from(schema.practiceSets)
-    .innerJoin(schema.cambridgeBooks, eq(schema.practiceSets.bookId, schema.cambridgeBooks.id))
-    .where(eq(schema.cambridgeBooks.version, defaultTestType))
-    .all();
-
-  const syllabusSets = syllabusSetsRaw.map((row) => row.set);
+  const syllabusSets = getSyllabusSetsForTestType(data, defaultTestType).map((row) => row.set);
   const completedSets = syllabusSets.filter((s) => s.status === "Completed");
   const completionRatio = `${completedSets.length}/${syllabusSets.length}`;
   const completionPct =
@@ -60,44 +51,25 @@ export default async function DashboardPage() {
       ? Math.round((completedSets.length / syllabusSets.length) * 100)
       : 0;
 
-  const skillCompletedCounts: Record<Skill, number> = { Listening: 0, Reading: 0, Writing: 0, Speaking: 0 };
+  const skillCompletedCounts: Record<Skill, number> = {
+    Listening: 0,
+    Reading: 0,
+    Writing: 0,
+    Speaking: 0,
+  };
   for (const set of completedSets) {
     skillCompletedCounts[set.moduleSkill]++;
   }
 
-  const skillsStats = SKILLS.map((skillName) => {
-    return {
-      name: skillName,
-      latest: latestScores[skillName] || 0,
-      average: averageScores[skillName],
-      target: goalTargetForSkill(goals, skillName),
-      completedSets: skillCompletedCounts[skillName],
-    };
-  });
+  const skillsStats = SKILLS.map((skillName) => ({
+    name: skillName,
+    latest: latestScores[skillName] || 0,
+    average: averageScores[skillName],
+    target: goalTargetForSkill(goals, skillName),
+    completedSets: skillCompletedCounts[skillName],
+  }));
 
-  // 4. Fetch Planned Checklist Tasks
-  const upcomingSetsRaw = await db.select({
-    set: schema.practiceSets,
-    book: schema.cambridgeBooks,
-  })
-    .from(schema.practiceSets)
-    .innerJoin(schema.cambridgeBooks, eq(schema.practiceSets.bookId, schema.cambridgeBooks.id))
-    .where(
-      and(
-        or(
-          eq(schema.practiceSets.status, "To Practice"),
-          eq(schema.practiceSets.status, "In Progress")
-        ),
-        eq(schema.cambridgeBooks.version, defaultTestType)
-      )
-    )
-    .orderBy(
-      asc(schema.practiceSets.targetDate)
-    )
-    .limit(5)
-    .all();
-
-  const upcomingSets = upcomingSetsRaw.map((row) => ({
+  const upcomingSets = getUpcomingSetsForTestType(data, defaultTestType).map((row) => ({
     id: row.set.id,
     moduleSkill: row.set.moduleSkill,
     bookTitle: row.book.title,
@@ -109,9 +81,9 @@ export default async function DashboardPage() {
     <DashboardClient
       recentAttempts={recentAttempts}
       stats={{
-        overallBand: overallBand,
-        completionRatio: completionRatio,
-        completionPct: completionPct,
+        overallBand,
+        completionRatio,
+        completionPct,
         skills: skillsStats,
       }}
       upcomingSets={upcomingSets}

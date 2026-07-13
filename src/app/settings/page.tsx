@@ -1,16 +1,18 @@
+"use client";
+
 import SettingsClient from "@/components/SettingsClient";
-import { getActiveGoals, getDefaultTestType } from "@/db/queries";
+import { useLocalStore } from "@/components/LocalStoreProvider";
+import { getActiveGoals, getDefaultTestType } from "@/lib/local-store";
 
-export const dynamic = "force-dynamic";
-
-export default async function SettingsPage() {
-  const goals = getActiveGoals();
-  const defaultTestType = getDefaultTestType();
+export default function SettingsPage() {
+  const { data } = useLocalStore();
+  const goals = getActiveGoals(data);
+  const defaultTestType = getDefaultTestType(data);
 
   return (
-    <SettingsClient 
-      goals={goals} 
-      defaultTestType={defaultTestType} 
+    <SettingsClient
+      goals={goals}
+      defaultTestType={defaultTestType}
     />
   );
 }

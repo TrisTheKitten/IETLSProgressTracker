@@ -31,12 +31,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  transitionPracticeSetStatus,
-  updatePracticeSetDetails,
-  createCustomPracticeSet,
-} from "@/app/actions";
 import ScoreEntryDialog from "@/components/ScoreEntryDialog";
+import { useLocalStore } from "@/components/LocalStoreProvider";
 import { cn } from "@/lib/utils";
 import type { PracticeSetStatus, Skill, TestType } from "@/lib/domain";
 
@@ -145,7 +141,7 @@ function PracticeSetLedgerRow({
   const statusUsesAccent = set.status === "To Practice" || set.status === "In Progress";
 
   return (
-    <article className="border-b border-border last:border-b-0">
+    <article className="ui-hover-row border-b border-border last:border-b-0">
       <div className="grid min-w-0 gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[5rem_minmax(7rem,0.9fr)_minmax(9rem,1fr)_minmax(13rem,auto)] lg:items-center lg:gap-4">
         <div className="flex min-w-0 items-center justify-between gap-3 lg:block">
           <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
@@ -181,7 +177,7 @@ function PracticeSetLedgerRow({
                   <button
                     type="button"
                     aria-label={`${set.targetDate ? "Change" : "Set"} planned date for ${setName}`}
-                    className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-sm text-left text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:w-auto"
+                    className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-sm px-1 text-left text-sm text-muted-foreground transition-[color,background-color] duration-200 ease-out hover:bg-secondary/55 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:w-auto"
                   >
                     <CalendarIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span className="truncate">
@@ -260,6 +256,11 @@ function PracticeSetLedgerRow({
 }
 
 export default function PlannerClient({ practiceSets, booksList, currentScores, targetOverall }: PlannerClientProps) {
+  const {
+    transitionPracticeSetStatus,
+    updatePracticeSetDetails,
+    createCustomPracticeSet,
+  } = useLocalStore();
   const [filterSkill, setFilterSkill] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("Active");
   const [filterBook, setFilterBook] = useState<string>("All");
@@ -507,7 +508,7 @@ export default function PlannerClient({ practiceSets, booksList, currentScores, 
                 <section
                   key={group.key}
                   aria-labelledby={headingId}
-                  className="overflow-hidden border border-border bg-card"
+                  className="ui-hover-panel overflow-hidden border border-border bg-card"
                 >
                   <header className="flex flex-col gap-2 border-b border-border bg-secondary/40 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-5">
                     <div className="min-w-0">

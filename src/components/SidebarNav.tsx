@@ -39,27 +39,27 @@ function NavLink({
       onClick={onClick}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "group relative flex items-center gap-3 px-5 py-2.5 text-[0.84rem] tracking-[0.01em] transition-colors duration-200 focus-visible:bg-sidebar-accent",
+        "group relative flex items-center gap-3 px-5 py-2.5 text-[0.84rem] tracking-[0.01em] transition-[color,background-color] duration-200 ease-out focus-visible:bg-sidebar-accent",
         isActive
-          ? "font-semibold text-sidebar-primary"
-          : "font-medium text-sidebar-foreground/65 hover:text-sidebar-foreground"
+          ? "bg-sidebar-accent/55 font-semibold text-sidebar-primary"
+          : "font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/45 hover:text-sidebar-foreground"
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "absolute inset-y-2 left-0 w-px bg-sidebar-primary transition-opacity duration-200",
-          isActive ? "opacity-100" : "opacity-0"
+          "absolute inset-y-2 left-0 w-px bg-sidebar-primary transition-[opacity,transform] duration-200 ease-out",
+          isActive ? "scale-y-100 opacity-100" : "scale-y-75 opacity-0 group-hover:scale-y-100 group-hover:opacity-40"
         )}
       />
       <Icon
         aria-hidden="true"
         strokeWidth={isActive ? 1.9 : 1.5}
         className={cn(
-          "h-4 w-4 shrink-0 transition-colors duration-200",
+          "h-4 w-4 shrink-0 transition-[color,transform] duration-200 ease-out",
           isActive
             ? "text-sidebar-primary"
-            : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/70"
+            : "text-sidebar-foreground/45 group-hover:translate-x-0.5 group-hover:text-sidebar-foreground/70"
         )}
       />
       <span>{label}</span>
@@ -74,7 +74,7 @@ function Brand() {
       className="group flex min-w-0 items-center gap-3 text-sidebar-foreground"
       aria-label="IELTS tracker dashboard"
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center border border-sidebar-primary/40 font-serif text-sm font-semibold tracking-[-0.03em] text-sidebar-primary transition-colors group-hover:border-sidebar-primary">
+      <span className="grid h-9 w-9 shrink-0 place-items-center border border-sidebar-primary/40 font-serif text-sm font-semibold tracking-[-0.03em] text-sidebar-primary transition-[border-color,transform,background-color] duration-200 ease-out group-hover:scale-[1.03] group-hover:border-sidebar-primary group-hover:bg-sidebar-accent/40">
         IT
       </span>
       <span className="min-w-0 leading-none">

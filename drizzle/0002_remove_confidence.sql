@@ -1,1 +1,0 @@
-ALTER TABLE `practice_attempts` DROP COLUMN `confidence`;

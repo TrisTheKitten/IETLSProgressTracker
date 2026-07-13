@@ -34,7 +34,7 @@ export function SetRankingCard({
 }) {
   const titleId = `ranking-${title.toLowerCase().replaceAll(" ", "-")}`;
   return (
-    <article className="flex min-w-0 flex-col border-y border-border" aria-labelledby={titleId}>
+    <article className="ui-hover-panel flex min-w-0 flex-col border-y border-border" aria-labelledby={titleId}>
       <header className="flex items-center justify-between border-b border-border py-3">
         <h3 id={titleId} className="font-serif text-xl font-semibold tracking-tight text-foreground">{title}</h3>
       </header>
@@ -62,10 +62,10 @@ export function SetRankingCard({
                   </div>
                   <ol className="divide-y divide-border border-t border-border">
                     {sets.map((set, rank) => (
-                      <li key={set.setId} className="flex items-center gap-3 py-2.5 transition-colors hover:bg-secondary/50 motion-reduce:transition-none">
+                      <li key={set.setId} className="ui-hover-row group flex items-center gap-3 py-2.5 pl-1">
                         <span className="w-5 shrink-0 font-serif text-sm font-semibold tabular-nums text-primary">{String(rank + 1).padStart(2, "0")}</span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-foreground">{set.bookTitle}<span className="text-muted-foreground"> · Test {set.testNumber}</span></p>
+                          <p className="truncate text-sm text-foreground transition-colors group-hover:text-primary">{set.bookTitle}<span className="text-muted-foreground"> · Test {set.testNumber}</span></p>
                           {set.attemptsCount > 1 && <p className="text-xs text-muted-foreground">{set.attemptsCount} attempts</p>}
                         </div>
                         <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">{set.averageScore.toFixed(1)}</span>
@@ -92,7 +92,7 @@ export function InsightCard({ label, value, skill, score, detail }: {
   const SkillIcon = skill ? SKILL_ICONS[skill] : null;
   const displayValue = skill ?? value ?? "";
   return (
-    <article className="flex min-w-0 items-start gap-4 py-6 first:md:pr-8 last:md:pl-8">
+    <article className="ui-hover-cell flex min-w-0 items-start gap-4 py-6 first:md:pr-8 last:md:pl-8">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
         <div className="flex min-h-8 items-center justify-between gap-3">

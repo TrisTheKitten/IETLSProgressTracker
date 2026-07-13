@@ -208,7 +208,7 @@ export default function AnalyticsClient({
             {hasProgress && latestOverall !== null ? (
               <div className="border-y border-border bg-card">
                 <div className="grid lg:grid-cols-[minmax(0,1fr)_21rem]">
-                  <div className="min-w-0 space-y-6 px-1 py-7 sm:px-3 sm:py-9 lg:pr-10">
+                  <div className="min-w-0 space-y-6 px-1 py-7 sm:px-3 sm:py-9 lg:pr-10 ui-hover-cell">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 id="overall-summary-title" className="text-xs font-medium text-muted-foreground">
                           Current overall
@@ -299,7 +299,7 @@ export default function AnalyticsClient({
                         return (
                           <article
                             key={skill.name}
-                            className="flex items-center gap-3 border-b border-border py-3 sm:odd:pr-4 sm:even:border-l sm:even:pl-4"
+                            className="ui-hover-cell flex items-center gap-3 border-b border-border py-3 sm:odd:pr-4 sm:even:border-l sm:even:pl-4"
                           >
                             <Icon className={cn("h-4 w-4 shrink-0", tracked ? "text-primary" : "text-muted-foreground")} aria-hidden="true" />
                             <div className="min-w-0 flex-1">
@@ -400,7 +400,7 @@ export default function AnalyticsClient({
                 return (
                   <article
                     key={skill.name}
-                    className="flex min-w-0 flex-col gap-5 border-b border-border py-5 sm:py-6"
+                    className="ui-hover-cell group flex min-w-0 flex-col gap-5 border-b border-border py-5 sm:py-6"
                   >
                       <div className="flex min-h-9 items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-2.5">
@@ -481,10 +481,10 @@ export default function AnalyticsClient({
                           ) : (
                             <Link
                               href="/"
-                              className="inline-flex items-center gap-1 text-primary hover:underline"
+                              className="group/link inline-flex items-center gap-1 text-primary transition-colors hover:underline"
                             >
                               Log a score
-                              <ArrowRight className="h-3 w-3" />
+                              <ArrowRight className="ui-hover-link-icon h-3 w-3" />
                             </Link>
                           )}
                         </div>
@@ -614,7 +614,7 @@ function MiniStat({
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-col justify-end border-r border-border px-3 py-5 last:border-r-0 sm:px-5 lg:py-7">
+    <div className="ui-hover-cell flex min-w-0 flex-col justify-end border-r border-border px-3 py-5 last:border-r-0 sm:px-5 lg:py-7">
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
       <dd className="mt-1 font-serif text-2xl font-semibold tabular-nums leading-none text-foreground sm:text-3xl">
         {value}

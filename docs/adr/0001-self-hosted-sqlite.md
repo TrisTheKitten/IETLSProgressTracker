@@ -1,17 +1,19 @@
-# ADR 0001: Self-Hosted Local SQLite Database
+# ADR 0001: Browser-Local IndexedDB Persistence
 
 ## Context & Problem Statement
-The IELTS Tracker application requires a data persistence layer to store Cambridge practice catalogs, planned tasks, target score goals, settings, and logged practice attempts. The app needs to support fast CRUD operations, simple deployment, and local-first self-hosted scenarios without relying on cloud resources (such as Vercel databases, Postgres, or external hosted services).
+The IELTS Tracker application needs to store Cambridge practice catalogs, planned tasks, target score goals, settings, and logged practice attempts. The product goals are: free for everyone, no authentication, and data that stays on each user's device so the app can deploy on serverless hosts such as Vercel.
 
 ## Decision
-We choose **SQLite** as the database engine, managed via **Drizzle ORM** and the `better-sqlite3` driver. The database is stored in a local file (defaulting to `./data/ielts_tracker.db`), with its path configurable via environment variables (`DATABASE_URL`).
+We persist a single application document in **IndexedDB** in the user's browser. The document shape matches the existing JSON backup payload (`books`, `sets`, `attempts`, `goals`, `settings`). Mutations and queries run client-side; the Next.js app ships UI and seed logic only.
 
 ## Rationale
-- **Zero Configuration**: SQLite does not require running a separate database server process, simplifying self-hosting. It is a single file written directly to the host's filesystem.
-- **Drizzle Integration**: Drizzle ORM provides a type-safe interface for SQLite tables, compile-time query generation, and easy migrations in development and production.
-- **Embedded Database Performance**: Using `better-sqlite3` provides synchronous, high-throughput queries directly inside Next.js server actions.
-- **Local Backup Ease**: Database backup and restore can be done by simply exporting and importing JSON structures.
+- **No server database:** Vercel (and similar hosts) do not need a writable filesystem or hosted SQL service.
+- **No auth:** Each browser is its own private store; there is no shared multi-tenant backend to protect.
+- **Portable backups:** Export/import JSON remains the way to move data between devices or recover after clearing site data.
+- **Familiar domain model:** The same backup schema used previously for SQLite export continues to validate stored state.
 
 ## Consequences
-- **Concurrency Limitation**: SQLite supports multiple readers but locks during writes. For a single-user MVP, this is not an issue.
-- **Serverless Environments**: A local SQLite file is not suitable for serverless platforms like Vercel which have read-only, ephemeral filesystems. This app must be run on a persistent server (e.g., Docker, VPS, or run locally via Node).
+- **Per-device isolation:** Phone and laptop do not sync automatically; users must export/import to copy data.
+- **Ephemeral contexts:** Private/incognito windows lose data when the session ends.
+- **Clearing site data:** Wiping browser storage for the site deletes the tracker unless a backup was exported.
+- **Supersedes:** The earlier self-hosted SQLite + `better-sqlite3` approach, which could not run reliably on serverless platforms.

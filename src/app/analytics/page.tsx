@@ -1,18 +1,20 @@
-import AnalyticsClient from "@/components/AnalyticsClient";
-import { calculateOverallBand } from "@/lib/ielts";
-import { getActiveGoals, getAttemptsWithSetAndBook } from "@/db/queries";
-import { SKILLS, type Skill } from "@/lib/domain";
+"use client";
 
-export const dynamic = "force-dynamic";
+import AnalyticsClient from "@/components/AnalyticsClient";
+import { useLocalStore } from "@/components/LocalStoreProvider";
+import { calculateOverallBand } from "@/lib/ielts";
+import { SKILLS, type Skill } from "@/lib/domain";
+import { getActiveGoals, getAttemptsWithSetAndBook } from "@/lib/local-store";
 
 function formatChartDate(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export default async function AnalyticsPage() {
-  const goals = getActiveGoals();
-  const attemptsRaw = getAttemptsWithSetAndBook();
+export default function AnalyticsPage() {
+  const { data } = useLocalStore();
+  const goals = getActiveGoals(data);
+  const attemptsRaw = getAttemptsWithSetAndBook(data);
 
   const attempts = attemptsRaw.map((row) => ({
     id: row.attempt.id,
@@ -63,7 +65,7 @@ export default async function AnalyticsPage() {
         .filter((s) => s.skill === skill)
         .sort((a, b) => b.averageScore - a.averageScore);
       return [skill, sorted.slice(0, perSkillLimit)];
-    })
+    }),
   ) as Record<Skill, typeof setSummaries>;
 
   const worstSetsBySkill = Object.fromEntries(
@@ -72,10 +74,9 @@ export default async function AnalyticsPage() {
         .filter((s) => s.skill === skill)
         .sort((a, b) => a.averageScore - b.averageScore);
       return [skill, sorted.slice(0, perSkillLimit)];
-    })
+    }),
   ) as Record<Skill, typeof setSummaries>;
 
-  // Overall band timeline — only once all four skills have a score.
   const ascAttempts = [...attemptsRaw].sort((a, b) => a.attempt.date.localeCompare(b.attempt.date));
   const latestAsOf: Record<string, number> = {};
   const progressData: { index: number; dateStr: string; overall: number; fullDate: string }[] = [];
@@ -100,7 +101,6 @@ export default async function AnalyticsPage() {
     }
   }
 
-  // Per-skill score timelines for sparklines / skill cards.
   const skillProgress = Object.fromEntries(
     SKILLS.map((skill) => {
       const points = ascAttempts
@@ -112,7 +112,7 @@ export default async function AnalyticsPage() {
           band: row.attempt.bandScore,
         }));
       return [skill, points];
-    })
+    }),
   ) as Record<Skill, { index: number; dateStr: string; fullDate: string; band: number }[]>;
 
   return (

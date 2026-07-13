@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { saveStudyGoals, updateAppSetting, exportData, importData, resetDatabase } from "@/app/actions";
+import { useLocalStore } from "@/components/LocalStoreProvider";
 import { goalsInputSchema, type GoalsInput, type TestType } from "@/lib/domain";
 
 interface SettingsClientProps {
@@ -28,6 +28,13 @@ interface SettingsClientProps {
 }
 
 export default function SettingsClient({ goals, defaultTestType }: SettingsClientProps) {
+  const {
+    saveStudyGoals,
+    updateAppSetting,
+    exportData,
+    importData,
+    resetDatabase,
+  } = useLocalStore();
   const [testType, setTestType] = useState<TestType>(defaultTestType);
   const [isSavingGoals, setIsSavingGoals] = useState(false);
   const [isSavingPref, setIsSavingPref] = useState(false);
@@ -100,14 +107,14 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (confirm("Importing this backup will completely overwrite your current database. Do you wish to proceed?")) {
+    if (confirm("Importing this backup will completely overwrite your current local data. Do you wish to proceed?")) {
       const reader = new FileReader();
       reader.onload = async (event) => {
         const text = event.target?.result as string;
         try {
           const res = await importData(text);
           if (res.success) {
-            alert("Database restored successfully!");
+            alert("Data restored successfully!");
             window.location.reload();
           } else {
             alert(`Import failed: ${res.error}`);
@@ -127,11 +134,11 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
       setIsResetting(true);
       try {
         await resetDatabase();
-        alert("Database has been reset successfully!");
+        alert("Tracker data has been reset successfully!");
         window.location.reload();
       } catch (err) {
         console.error(err);
-        alert("Failed to reset database.");
+        alert("Failed to reset tracker data.");
       } finally {
         setIsResetting(false);
       }
@@ -286,7 +293,7 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
               Backup and restore
             </h2>
             <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
-              Export the complete local database to JSON, or restore a previous snapshot.
+              Export the complete local browser data to JSON, or restore a previous snapshot.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -330,7 +337,7 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
               className="min-h-11 cursor-pointer"
             >
               <RefreshCw data-icon="inline-start" className={isResetting ? "animate-spin motion-reduce:animate-none" : undefined} />
-              <span>{isResetting ? "Resetting…" : "Reset tracker database"}</span>
+              <span>{isResetting ? "Resetting…" : "Reset tracker data"}</span>
             </Button>
           </div>
         </section>

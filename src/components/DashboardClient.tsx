@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import ScoreEntryDialog from "@/components/ScoreEntryDialog";
-import { deleteAttempt, transitionPracticeSetStatus } from "@/app/actions";
+import { useLocalStore } from "@/components/LocalStoreProvider";
 import { cn } from "@/lib/utils";
 import type { GoalsInput, Skill } from "@/lib/domain";
 
@@ -72,6 +72,7 @@ export default function DashboardClient({
   upcomingSets,
   goals,
 }: DashboardClientProps) {
+  const { deleteAttempt, transitionPracticeSetStatus } = useLocalStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSet, setSelectedSet] = useState<{
     id: string;
@@ -171,7 +172,7 @@ export default function DashboardClient({
 
       <section aria-labelledby="current-band-heading" className="border-y border-border">
         <div className="grid lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.7fr)]">
-          <div className="px-5 py-7 sm:px-7 sm:py-9 lg:border-r lg:border-border lg:px-10">
+          <div className="px-5 py-7 sm:px-7 sm:py-9 lg:border-r lg:border-border lg:px-10 ui-hover-cell">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="current-band-heading" className="text-sm font-semibold text-foreground">
                 Estimated overall band
@@ -228,14 +229,14 @@ export default function DashboardClient({
           </div>
 
           <div className="grid grid-cols-2 border-t border-border lg:grid-cols-1 lg:border-t-0">
-            <div className="px-5 py-6 sm:px-7 lg:px-8 lg:py-8">
+            <div className="ui-hover-cell px-5 py-6 sm:px-7 lg:px-8 lg:py-8">
               <p className="text-sm text-muted-foreground">Catalogue completed</p>
               <p className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground tabular-nums">
                 {stats.completionPct}%
               </p>
               <p className="mt-1 text-sm text-muted-foreground">{stats.completionRatio} sets</p>
             </div>
-            <div className="border-l border-border px-5 py-6 sm:px-7 lg:border-l-0 lg:border-t lg:px-8 lg:py-8">
+            <div className="ui-hover-cell border-l border-border px-5 py-6 sm:px-7 lg:border-l-0 lg:border-t lg:px-8 lg:py-8">
               <p className="text-sm text-muted-foreground">Current evidence</p>
               <p className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground tabular-nums">
                 {recentAttempts.length}
@@ -250,7 +251,7 @@ export default function DashboardClient({
             <div
               key={skill.name}
               className={cn(
-                "flex items-baseline justify-between gap-4 px-5 py-4 sm:px-6",
+                "ui-hover-cell flex items-baseline justify-between gap-4 px-5 py-4 sm:px-6",
                 index % 2 === 1 && "sm:border-l sm:border-border",
                 index > 1 && "border-t border-border lg:border-t-0",
                 index > 0 && "lg:border-l lg:border-border"
@@ -275,7 +276,7 @@ export default function DashboardClient({
               <h2 id="next-study-heading" className="font-heading text-2xl font-semibold tracking-tight text-foreground">
                 Next practice
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">Your short study list</p>
+              <p className="mt-1 text-sm text-muted-foreground">All planned sets</p>
             </div>
             <span className="text-sm text-muted-foreground tabular-nums">{upcomingSets.length} planned</span>
           </div>
@@ -288,15 +289,19 @@ export default function DashboardClient({
               </p>
               <Link
                 href="/planner"
-                className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group/link mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Browse the catalogue <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                Browse the catalogue{" "}
+                <ArrowUpRight className="ui-hover-link-icon h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
           ) : (
             <div>
               {upcomingSets.map((set) => (
-                <div key={set.id} className="group flex items-start gap-3 border-b border-border py-4">
+                <div
+                  key={set.id}
+                  className="group ui-hover-row flex items-start gap-3 border-b border-border py-4 pl-1"
+                >
                   <Checkbox
                     id={`set-${set.id}`}
                     className="mt-0.5"
@@ -304,7 +309,9 @@ export default function DashboardClient({
                     aria-label={`Mark ${set.bookTitle}, test ${set.testNumber} in progress`}
                   />
                   <label htmlFor={`set-${set.id}`} className="min-w-0 flex-1 cursor-pointer">
-                    <span className="block text-sm font-semibold leading-5 text-foreground">{set.bookTitle}</span>
+                    <span className="block text-sm font-semibold leading-5 text-foreground transition-colors group-hover:text-primary">
+                      {set.bookTitle}
+                    </span>
                     <span className="mt-1 block text-sm text-muted-foreground">
                       Test {set.testNumber} · {set.moduleSkill}
                     </span>
@@ -320,7 +327,7 @@ export default function DashboardClient({
                     size="icon"
                     onClick={() => handleLogScoreClick(set)}
                     aria-label={`Log score for ${set.bookTitle}, test ${set.testNumber}`}
-                    className="min-h-11 min-w-11 shrink-0"
+                    className="ui-hover-actions min-h-11 min-w-11 shrink-0"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -352,8 +359,11 @@ export default function DashboardClient({
                 const attemptDate = new Date(attempt.date);
 
                 return (
-                  <article key={attempt.id} className="grid grid-cols-[3.75rem_minmax(0,1fr)_auto] gap-x-4 border-b border-border py-5">
-                    <span className="font-heading text-3xl font-semibold leading-none text-foreground tabular-nums">
+                  <article
+                    key={attempt.id}
+                    className="group ui-hover-row grid grid-cols-[3.75rem_minmax(0,1fr)_auto] gap-x-4 border-b border-border py-5 pl-1"
+                  >
+                    <span className="font-heading text-3xl font-semibold leading-none text-foreground tabular-nums transition-colors group-hover:text-primary">
                       {attempt.bandScore.toFixed(1)}
                     </span>
                     <div className="min-w-0">
@@ -376,7 +386,7 @@ export default function DashboardClient({
                         <p className="mt-3 text-sm leading-6 text-muted-foreground">{attempt.notes}</p>
                       )}
                     </div>
-                    <div className="flex shrink-0 items-start gap-1">
+                    <div className="ui-hover-actions flex shrink-0 items-start gap-1">
                       <button
                         type="button"
                         onClick={() => handleEditAttemptClick(attempt)}
