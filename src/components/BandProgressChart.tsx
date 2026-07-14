@@ -11,21 +11,55 @@ import {
   YAxis,
 } from "recharts";
 
+export type ChartDataPointInput = {
+  index: number;
+  dateStr: string;
+  fullDate?: string;
+} & ({ value: number } | { overall: number });
+
 interface ChartDataPoint {
   index: number;
   dateStr: string;
-  overall: number;
+  value: number;
   fullDate?: string;
 }
 
 interface BandProgressChartProps {
-  data: ChartDataPoint[];
-  targetOverall: number;
+  data: ChartDataPointInput[];
+  targetBand?: number;
+  /** @deprecated Use targetBand */
+  targetOverall?: number;
+  title?: string;
+  subtitle?: string;
+  eyebrow?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  valueLabel?: string;
+  ariaLabel?: string;
+}
+
+const DEFAULTS = {
+  eyebrow: "Band trajectory",
+  title: "Overall band over time",
+  subtitle: "Rolling overall after each session once all four skills are logged",
+  emptyTitle: "No overall timeline yet",
+  emptyDescription: "Log at least one score in each skill to unlock your overall band curve.",
+  valueLabel: "Overall",
+} as const;
+
+function normalizePoint(point: ChartDataPointInput): ChartDataPoint {
+  const value = "value" in point ? point.value : point.overall;
+  return {
+    index: point.index,
+    dateStr: point.dateStr,
+    fullDate: point.fullDate,
+    value,
+  };
 }
 
 function chartDomain(data: ChartDataPoint[], target: number): [number, number] {
   if (data.length === 0) return [0, 9];
-  const values = data.map((d) => d.overall);
+  const values = data.map((d) => d.value);
   const min = Math.min(...values, target);
   const max = Math.max(...values, target);
   const pad = 0.5;
@@ -40,25 +74,41 @@ function domainTicks(domain: [number, number]) {
   return ticks;
 }
 
-export default function BandProgressChart({ data, targetOverall }: BandProgressChartProps) {
-  const domain = chartDomain(data, targetOverall);
+export default function BandProgressChart({
+  data: rawData,
+  targetBand,
+  targetOverall,
+  title = DEFAULTS.title,
+  subtitle = DEFAULTS.subtitle,
+  eyebrow = DEFAULTS.eyebrow,
+  emptyTitle = DEFAULTS.emptyTitle,
+  emptyDescription = DEFAULTS.emptyDescription,
+  valueLabel = DEFAULTS.valueLabel,
+  ariaLabel,
+}: BandProgressChartProps) {
+  const data = rawData.map(normalizePoint);
+  const target = targetBand ?? targetOverall ?? 0;
+  const domain = chartDomain(data, target);
   const ticks = domainTicks(domain);
+  const chartAriaLabel =
+    ariaLabel ??
+    (data.length > 0 ? `${valueLabel} IELTS band trend across ${data.length} recorded sessions` : undefined);
 
   return (
     <section aria-labelledby="band-progress-title" className="border-y border-border py-6 sm:py-8">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-primary">Band trajectory</p>
+          <p className="text-xs font-medium text-primary">{eyebrow}</p>
           <h2 id="band-progress-title" className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Overall band over time
+            {title}
           </h2>
           <p className="max-w-lg text-xs leading-5 text-muted-foreground sm:text-sm">
-            Rolling overall after each session once all four skills are logged
+            {subtitle}
           </p>
         </div>
-        {targetOverall > 0 && (
+        {target > 0 && (
           <p className="shrink-0 border-l border-primary pl-3 text-xs font-medium text-muted-foreground tabular-nums">
-            Target <span className="text-foreground">{targetOverall.toFixed(1)}</span>
+            Target <span className="text-foreground">{target.toFixed(1)}</span>
           </p>
         )}
       </header>
@@ -67,13 +117,13 @@ export default function BandProgressChart({ data, targetOverall }: BandProgressC
         <div
           className="h-60 w-full min-w-0 sm:h-72"
           role={data.length > 0 ? "img" : undefined}
-          aria-label={data.length > 0 ? `Overall IELTS band trend across ${data.length} recorded sessions` : undefined}
+          aria-label={chartAriaLabel}
         >
           {data.length === 0 ? (
             <div className="flex h-full flex-col items-start justify-center border-b border-dashed border-border py-8">
-              <p className="font-serif text-xl font-semibold text-foreground">No overall timeline yet</p>
+              <p className="font-serif text-xl font-semibold text-foreground">{emptyTitle}</p>
               <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
-                Log at least one score in each skill to unlock your overall band curve.
+                {emptyDescription}
               </p>
             </div>
           ) : (
@@ -105,14 +155,14 @@ export default function BandProgressChart({ data, targetOverall }: BandProgressC
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const point = payload[0].payload as ChartDataPoint;
-                    const gap = targetOverall - point.overall;
+                    const gap = target - point.value;
                     return (
                       <div className="border border-border bg-popover px-3 py-2.5 text-popover-foreground">
                         <p className="text-xs text-muted-foreground">{point.dateStr}</p>
                         <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-                          Overall {point.overall.toFixed(1)}
+                          {valueLabel} {point.value.toFixed(1)}
                         </p>
-                        {targetOverall > 0 && (
+                        {target > 0 && (
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {gap <= 0 ? (
                               <span className="font-medium text-foreground">Target achieved</span>
@@ -128,9 +178,9 @@ export default function BandProgressChart({ data, targetOverall }: BandProgressC
                     );
                   }}
                 />
-                {targetOverall > 0 && (
+                {target > 0 && (
                   <ReferenceLine
-                    y={targetOverall}
+                    y={target}
                     stroke="var(--primary)"
                     strokeDasharray="4 4"
                     strokeOpacity={0.65}
@@ -138,7 +188,7 @@ export default function BandProgressChart({ data, targetOverall }: BandProgressC
                 )}
                 <Line
                   type="monotone"
-                  dataKey="overall"
+                  dataKey="value"
                   stroke="var(--primary)"
                   strokeWidth={2.25}
                   isAnimationActive={false}

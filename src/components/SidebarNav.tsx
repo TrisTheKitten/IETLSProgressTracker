@@ -89,6 +89,13 @@ function Brand() {
   );
 }
 
+function isNavActive(pathname: string, href: string) {
+  if (href === "/analytics") {
+    return pathname === "/analytics" || pathname.startsWith("/analytics/");
+  }
+  return pathname === href;
+}
+
 export default function SidebarNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -179,7 +186,7 @@ export default function SidebarNav() {
             <NavLink
               key={item.href}
               {...item}
-              isActive={pathname === item.href}
+              isActive={isNavActive(pathname, item.href)}
               onClick={closeMenu}
             />
           ))}
@@ -200,7 +207,7 @@ export default function SidebarNav() {
             <NavLink
               key={item.href}
               {...item}
-              isActive={pathname === item.href}
+              isActive={isNavActive(pathname, item.href)}
             />
           ))}
         </nav>

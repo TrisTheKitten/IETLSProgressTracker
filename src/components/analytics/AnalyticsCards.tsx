@@ -51,7 +51,7 @@ export function SetRankingCard({
         ) : (
           <div className="flex flex-1 flex-col gap-7">
             {SKILLS.map((skill) => {
-              const sets = setsBySkill[skill];
+              const sets = setsBySkill[skill] ?? [];
               if (sets.length === 0) return null;
               const Icon = SKILL_ICONS[skill];
               return (

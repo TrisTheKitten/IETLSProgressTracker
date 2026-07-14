@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   BarChart2,
   BookOpen,
+  ChevronRight,
   Headphones,
   MessageCircle,
   Minus,
@@ -398,11 +399,13 @@ export default function AnalyticsClient({
                   : 0;
 
                 return (
-                  <article
+                  <Link
                     key={skill.name}
+                    href={`/analytics/${skill.name.toLowerCase()}`}
                     className="ui-hover-cell group flex min-w-0 flex-col gap-5 border-b border-border py-5 sm:py-6"
                   >
-                      <div className="flex min-h-9 items-start justify-between gap-3">
+                    <article className="flex min-w-0 flex-1 flex-col gap-5">
+                        <div className="flex min-h-9 items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-2.5">
                           <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                           <div className="min-w-0">
@@ -414,13 +417,14 @@ export default function AnalyticsClient({
                             </p>
                           </div>
                         </div>
-                        {hasData && skill.stats.recentTrend !== null ? (
-                          <TrendBadge delta={skill.stats.recentTrend} compact />
-                        ) : (
-                          <span className="invisible shrink-0 text-xs">
-                            Steady
-                          </span>
-                        )}
+                        <div className="flex shrink-0 items-center gap-2">
+                          {hasData && skill.stats.recentTrend !== null ? (
+                            <TrendBadge delta={skill.stats.recentTrend} compact />
+                          ) : (
+                            <span className="invisible text-xs">Steady</span>
+                          )}
+                          <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+                        </div>
                       </div>
 
                       <div className="flex flex-1 items-end justify-between gap-3">
@@ -474,22 +478,20 @@ export default function AnalyticsClient({
                                   ? `${formatDelta(skill.stats.trend)} overall`
                                   : "Steady"}
                               </span>
-                              <span className="shrink-0 text-muted-foreground">
-                                {skill.stats.isTargetMet ? "Target met" : "Below target"}
+                              <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-primary">
+                                View detail
                               </span>
                             </>
                           ) : (
-                            <Link
-                              href="/"
-                              className="group/link inline-flex items-center gap-1 text-primary transition-colors hover:underline"
-                            >
-                              Log a score
+                            <span className="inline-flex items-center gap-1 text-primary">
+                              View detail
                               <ArrowRight className="ui-hover-link-icon h-3 w-3" />
-                            </Link>
+                            </span>
                           )}
                         </div>
                       </div>
-                  </article>
+                    </article>
+                  </Link>
                 );
               })}
             </div>
