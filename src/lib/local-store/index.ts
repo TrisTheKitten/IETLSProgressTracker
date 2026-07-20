@@ -1,14 +1,15 @@
 export type {
   AppData,
+  AppSettings,
   AttemptRecord,
   AttemptWithSetAndBook,
   BookRecord,
   PracticeSetRecord,
-  SettingRecord,
 } from "./types";
 
+export { appDataSchema } from "./types";
+
 export {
-  clearAppData,
   loadAppData,
   saveAppData,
 } from "./idb";
@@ -29,5 +30,13 @@ export {
   getSyllabusSetsForTestType,
   getUpcomingSetsForTestType,
 } from "./queries";
+
+export {
+  getAnalyticsView,
+  getDashboardView,
+  getPlannerView,
+  getSettingsView,
+  getSkillAnalyticsView,
+} from "./views";
 
 export * as mutations from "./mutations";

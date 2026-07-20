@@ -1,13 +1,12 @@
-import { DEFAULT_GOALS, testTypeSchema, type TestType } from "@/lib/domain";
+import { DEFAULT_GOALS, type TestType } from "@/lib/domain";
 import type { AppData, AttemptWithSetAndBook, BookRecord, PracticeSetRecord } from "./types";
 
 export function getActiveGoals(data: AppData) {
-  return data.goals.find((goal) => goal.isActive === 1) ?? { ...DEFAULT_GOALS };
+  return data.goals ?? { ...DEFAULT_GOALS };
 }
 
 export function getDefaultTestType(data: AppData): TestType {
-  const setting = data.settings.find((row) => row.key === "defaultTestType");
-  return testTypeSchema.catch("Academic").parse(setting?.value);
+  return data.settings.defaultTestType ?? "Academic";
 }
 
 export function getAttemptsWithSetAndBook(data: AppData): AttemptWithSetAndBook[] {
@@ -44,7 +43,7 @@ export function getPracticeSetsWithBooks(data: AppData) {
 
 export function getStandardBooks(data: AppData): BookRecord[] {
   return data.books
-    .filter((book) => book.isCustom === 0)
+    .filter((book) => !book.isCustom)
     .sort((a, b) => b.number - a.number);
 }
 

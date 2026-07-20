@@ -9,6 +9,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type {
+  AttemptInput,
+  CustomPracticeSetInput,
+  GoalsInput,
+  PracticeSetDetailsInput,
+  PracticeSetEvent,
+  TestType,
+} from "@/lib/domain";
 import {
   createInitialAppData,
   ensureCambridgeCatalogueUpToDate,
@@ -22,22 +30,16 @@ type LocalStoreValue = {
   data: AppData;
   ready: boolean;
   error: string | null;
-  saveAttempt: (input: unknown) => Promise<{ success: true; id: string }>;
-  deleteAttempt: (input: unknown) => Promise<{ success: true }>;
-  transitionPracticeSetStatus: (
-    idInput: unknown,
-    eventInput: unknown,
-  ) => Promise<{ success: true }>;
-  updatePracticeSetDetails: (
-    idInput: unknown,
-    input: unknown,
-  ) => Promise<{ success: true }>;
-  createCustomPracticeSet: (input: unknown) => Promise<{ success: true; id: string }>;
-  saveStudyGoals: (input: unknown) => Promise<{ success: true }>;
-  updateAppSetting: (keyInput: unknown, valueInput: unknown) => Promise<{ success: true }>;
+  saveAttempt: (input: AttemptInput) => Promise<string>;
+  deleteAttempt: (id: string) => Promise<void>;
+  transitionPracticeSetStatus: (id: string, event: PracticeSetEvent) => Promise<void>;
+  updatePracticeSetDetails: (id: string, input: PracticeSetDetailsInput) => Promise<void>;
+  createCustomPracticeSet: (input: CustomPracticeSetInput) => Promise<string>;
+  saveStudyGoals: (goals: GoalsInput) => Promise<void>;
+  setDefaultTestType: (value: TestType) => Promise<void>;
   exportData: () => Promise<string>;
-  importData: (jsonData: string) => Promise<{ success: boolean; error?: string }>;
-  resetDatabase: () => Promise<{ success: true }>;
+  importData: (jsonData: string) => Promise<void>;
+  resetDatabase: () => Promise<void>;
 };
 
 const LocalStoreContext = createContext<LocalStoreValue | null>(null);
@@ -47,6 +49,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dataRef = useRef<AppData | null>(null);
+  const queueRef = useRef(Promise.resolve());
 
   useEffect(() => {
     let cancelled = false;
@@ -82,68 +85,109 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const commit = useCallback(async (next: AppData) => {
-    dataRef.current = next;
-    setData(next);
-    await saveAppData(next);
+  const enqueue = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
+    const run = queueRef.current.then(task, task);
+    queueRef.current = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   }, []);
 
-  const requireData = useCallback(() => {
-    const current = dataRef.current;
-    if (!current) throw new Error("Local store is not ready");
-    return current;
-  }, []);
+  const apply = useCallback(
+    (recipe: (current: AppData) => AppData) =>
+      enqueue(async () => {
+        const current = dataRef.current;
+        if (!current) throw new Error("Local store is not ready");
+        const next = recipe(current);
+        dataRef.current = next;
+        setData(next);
+        await saveAppData(next);
+      }),
+    [enqueue],
+  );
 
-  const saveAttempt = useCallback(async (input: unknown) => {
-    const result = mutations.saveAttempt(requireData(), input);
-    await commit(result.data);
-    return { success: true as const, id: result.id };
-  }, [commit, requireData]);
+  const saveAttempt = useCallback(
+    async (input: AttemptInput) => {
+      let id = "";
+      await apply((current) => {
+        const result = mutations.saveAttempt(current, input);
+        id = result.id;
+        return result.data;
+      });
+      return id;
+    },
+    [apply],
+  );
 
-  const deleteAttempt = useCallback(async (input: unknown) => {
-    await commit(mutations.deleteAttempt(requireData(), input));
-    return { success: true as const };
-  }, [commit, requireData]);
+  const deleteAttempt = useCallback(
+    async (id: string) => {
+      await apply((current) => mutations.deleteAttempt(current, id));
+    },
+    [apply],
+  );
 
-  const transitionPracticeSetStatus = useCallback(async (idInput: unknown, eventInput: unknown) => {
-    await commit(mutations.transitionPracticeSetStatus(requireData(), idInput, eventInput));
-    return { success: true as const };
-  }, [commit, requireData]);
+  const transitionPracticeSetStatus = useCallback(
+    async (id: string, event: PracticeSetEvent) => {
+      await apply((current) => mutations.transitionPracticeSetStatus(current, id, event));
+    },
+    [apply],
+  );
 
-  const updatePracticeSetDetails = useCallback(async (idInput: unknown, input: unknown) => {
-    await commit(mutations.updatePracticeSetDetails(requireData(), idInput, input));
-    return { success: true as const };
-  }, [commit, requireData]);
+  const updatePracticeSetDetails = useCallback(
+    async (id: string, input: PracticeSetDetailsInput) => {
+      await apply((current) => mutations.updatePracticeSetDetails(current, id, input));
+    },
+    [apply],
+  );
 
-  const createCustomPracticeSet = useCallback(async (input: unknown) => {
-    const result = mutations.createCustomPracticeSet(requireData(), input);
-    await commit(result.data);
-    return { success: true as const, id: result.id };
-  }, [commit, requireData]);
+  const createCustomPracticeSet = useCallback(
+    async (input: CustomPracticeSetInput) => {
+      let id = "";
+      await apply((current) => {
+        const result = mutations.createCustomPracticeSet(current, input);
+        id = result.id;
+        return result.data;
+      });
+      return id;
+    },
+    [apply],
+  );
 
-  const saveStudyGoals = useCallback(async (input: unknown) => {
-    await commit(mutations.saveStudyGoals(requireData(), input));
-    return { success: true as const };
-  }, [commit, requireData]);
+  const saveStudyGoals = useCallback(
+    async (goals: GoalsInput) => {
+      await apply((current) => mutations.saveStudyGoals(current, goals));
+    },
+    [apply],
+  );
 
-  const updateAppSetting = useCallback(async (keyInput: unknown, valueInput: unknown) => {
-    await commit(mutations.updateAppSetting(requireData(), keyInput, valueInput));
-    return { success: true as const };
-  }, [commit, requireData]);
+  const setDefaultTestType = useCallback(
+    async (value: TestType) => {
+      await apply((current) => mutations.setDefaultTestType(current, value));
+    },
+    [apply],
+  );
 
-  const exportDataFn = useCallback(async () => mutations.exportData(requireData()), [requireData]);
+  const exportDataFn = useCallback(
+    () =>
+      enqueue(async () => {
+        const current = dataRef.current;
+        if (!current) throw new Error("Local store is not ready");
+        return mutations.exportData(current);
+      }),
+    [enqueue],
+  );
 
-  const importDataFn = useCallback(async (jsonData: string) => {
-    const result = mutations.importData(jsonData);
-    if (!result.success) return result;
-    await commit(result.data);
-    return { success: true };
-  }, [commit]);
+  const importDataFn = useCallback(
+    async (jsonData: string) => {
+      await apply(() => mutations.importData(jsonData));
+    },
+    [apply],
+  );
 
   const resetDatabase = useCallback(async () => {
-    await commit(mutations.resetDatabase());
-    return { success: true as const };
-  }, [commit]);
+    await apply(() => mutations.resetDatabase());
+  }, [apply]);
 
   if (error) {
     return (
@@ -177,7 +221,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
     updatePracticeSetDetails,
     createCustomPracticeSet,
     saveStudyGoals,
-    updateAppSetting,
+    setDefaultTestType,
     exportData: exportDataFn,
     importData: importDataFn,
     resetDatabase,

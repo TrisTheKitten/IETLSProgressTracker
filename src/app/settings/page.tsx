@@ -2,17 +2,16 @@
 
 import SettingsClient from "@/components/SettingsClient";
 import { useLocalStore } from "@/components/LocalStoreProvider";
-import { getActiveGoals, getDefaultTestType } from "@/lib/local-store";
+import { getSettingsView } from "@/lib/local-store";
 
 export default function SettingsPage() {
   const { data } = useLocalStore();
-  const goals = getActiveGoals(data);
-  const defaultTestType = getDefaultTestType(data);
+  const view = getSettingsView(data);
 
   return (
     <SettingsClient
-      goals={goals}
-      defaultTestType={defaultTestType}
+      goals={view.goals}
+      defaultTestType={view.defaultTestType}
     />
   );
 }

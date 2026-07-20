@@ -15,11 +15,21 @@ import {
   Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import BandProgressChart from "@/components/BandProgressChart";
 import ScoreEntryDialog from "@/components/ScoreEntryDialog";
 import { SetRankingCard, type SetSummary } from "@/components/analytics/AnalyticsCards";
 import { useLocalStore } from "@/components/LocalStoreProvider";
 import { SKILLS, goalTargetForSkill, type GoalsInput, type Skill } from "@/lib/domain";
+
+type SessionLogSort = "date" | "set";
 
 interface AttemptData {
   id: string;
@@ -31,6 +41,7 @@ interface AttemptData {
   duration: number | null;
   practiceSetId: string | null;
   bookTitle?: string;
+  bookNumber?: number;
   testNumber?: number;
 }
 
@@ -85,6 +96,29 @@ function formatDelta(delta: number | null) {
   return `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`;
 }
 
+/** Cambridge book numbers first; custom/unknown sets after; missing sets last. */
+function setSortKey(attempt: AttemptData): [number, number, string] {
+  if (!attempt.practiceSetId) {
+    return [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, ""];
+  }
+  const bookNumber =
+    attempt.bookNumber != null && attempt.bookNumber > 0
+      ? attempt.bookNumber
+      : Number.MAX_SAFE_INTEGER;
+  const testNumber = attempt.testNumber ?? Number.MAX_SAFE_INTEGER;
+  return [bookNumber, testNumber, attempt.bookTitle ?? ""];
+}
+
+function compareAttemptsBySet(a: AttemptData, b: AttemptData) {
+  const [bookA, testA, titleA] = setSortKey(a);
+  const [bookB, testB, titleB] = setSortKey(b);
+  if (bookA !== bookB) return bookA - bookB;
+  if (testA !== testB) return testA - testB;
+  const titleCmp = titleA.localeCompare(titleB);
+  if (titleCmp !== 0) return titleCmp;
+  return b.date.localeCompare(a.date);
+}
+
 function getSkillStats(points: SkillPoint[], target: number) {
   const count = points.length;
   const sum = points.reduce((acc, p) => acc + p.band, 0);
@@ -117,6 +151,7 @@ export default function SkillAnalyticsClient({
   const { deleteAttempt } = useLocalStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAttempt, setEditAttempt] = useState<EditAttempt | null>(null);
+  const [sessionLogSort, setSessionLogSort] = useState<SessionLogSort>("date");
 
   const Icon = SKILL_ICONS[skill];
   const target = goalTargetForSkill(goals, skill);
@@ -128,6 +163,18 @@ export default function SkillAnalyticsClient({
     fullDate: p.fullDate,
     value: p.band,
   }));
+
+  const sortedAttempts = useMemo(() => {
+    if (sessionLogSort === "date") {
+      return [...attempts].sort((a, b) => b.date.localeCompare(a.date));
+    }
+    return [...attempts].sort(compareAttemptsBySet);
+  }, [attempts, sessionLogSort]);
+
+  const sessionLogSubtitle =
+    sessionLogSort === "date"
+      ? `All ${skill.toLowerCase()} sessions, newest first`
+      : `All ${skill.toLowerCase()} sessions, by practice set`;
 
   const bestSetsBySkill = useMemo(() => {
     const bySkill = Object.fromEntries(SKILLS.map((s) => [s, [] as SetSummary[]])) as Record<Skill, SetSummary[]>;
@@ -261,14 +308,41 @@ export default function SkillAnalyticsClient({
       )}
 
       <section aria-labelledby="session-log-title">
-        <div className="flex items-end justify-between gap-4 border-b border-foreground pb-3">
-          <div>
+        <div className="flex flex-col gap-4 border-b border-foreground pb-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <h2 id="session-log-title" className="font-serif text-2xl font-semibold tracking-tight text-foreground">
               Session log
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">All {skill.toLowerCase()} sessions, newest first</p>
+            <p className="mt-1 text-sm text-muted-foreground">{sessionLogSubtitle}</p>
           </div>
-          <span className="text-sm text-muted-foreground tabular-nums">{attempts.length} logged</span>
+          <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+            {hasAttempts && (
+              <div className="min-w-0">
+                <Label htmlFor="session-log-sort" className="sr-only">
+                  Sort session log
+                </Label>
+                <Select
+                  value={sessionLogSort}
+                  onValueChange={(val) => {
+                    if (val === "date" || val === "set") setSessionLogSort(val);
+                  }}
+                >
+                  <SelectTrigger
+                    id="session-log-sort"
+                    aria-label="Sort session log"
+                    className="h-9 w-full min-w-[11.5rem] bg-transparent sm:w-auto"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    <SelectItem value="date">By date recorded</SelectItem>
+                    <SelectItem value="set">By practice set</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <span className="text-sm text-muted-foreground tabular-nums">{attempts.length} logged</span>
+          </div>
         </div>
 
         {attempts.length === 0 ? (
@@ -282,7 +356,7 @@ export default function SkillAnalyticsClient({
           </div>
         ) : (
           <div className="max-h-[34rem] overflow-y-auto pr-1">
-            {attempts.map((attempt) => {
+            {sortedAttempts.map((attempt) => {
               const attemptDate = new Date(attempt.date);
 
               return (

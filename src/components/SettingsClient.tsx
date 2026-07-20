@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   Download, 
@@ -21,16 +21,21 @@ import {
 } from "@/components/ui/select";
 import { useLocalStore } from "@/components/LocalStoreProvider";
 import { goalsInputSchema, type GoalsInput, type TestType } from "@/lib/domain";
+import { calculateOverallBand } from "@/lib/ielts";
 
 interface SettingsClientProps {
   goals: GoalsInput;
   defaultTestType: TestType;
 }
 
+function finiteBand(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export default function SettingsClient({ goals, defaultTestType }: SettingsClientProps) {
   const {
     saveStudyGoals,
-    updateAppSetting,
+    setDefaultTestType,
     exportData,
     importData,
     resetDatabase,
@@ -45,6 +50,9 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
   const {
     register,
     handleSubmit,
+    control,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<GoalsInput>({
     resolver: zodResolver(goalsInputSchema),
@@ -56,6 +64,32 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
       targetOverall: goals.targetOverall,
     },
   });
+
+  // Controlled so setValue updates are visible (Base UI Input ignores uncontrolled setValue).
+  const targetOverall = useWatch({ control, name: "targetOverall" });
+
+  const syncOverallFromSkills = () => {
+    const values = getValues();
+    const overall = calculateOverallBand({
+      listening: finiteBand(values.targetListening),
+      reading: finiteBand(values.targetReading),
+      writing: finiteBand(values.targetWriting),
+      speaking: finiteBand(values.targetSpeaking),
+    });
+    if (overall >= 1) {
+      setValue("targetOverall", overall, { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  const registerSkill = (name: "targetListening" | "targetReading" | "targetWriting" | "targetSpeaking") =>
+    register(name, {
+      valueAsNumber: true,
+      onChange: () => {
+        syncOverallFromSkills();
+      },
+    });
+
+  const overallField = register("targetOverall", { valueAsNumber: true });
 
   const onSubmitGoals = async (values: GoalsInput) => {
     setIsSavingGoals(true);
@@ -75,7 +109,7 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
     setIsSavingPref(true);
     setPrefMessage(null);
     try {
-      await updateAppSetting("defaultTestType", testType);
+      await setDefaultTestType(testType);
       setPrefMessage("Preferences saved.");
     } catch (err) {
       console.error(err);
@@ -112,16 +146,13 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
       reader.onload = async (event) => {
         const text = event.target?.result as string;
         try {
-          const res = await importData(text);
-          if (res.success) {
-            alert("Data restored successfully!");
-            window.location.reload();
-          } else {
-            alert(`Import failed: ${res.error}`);
-          }
+          await importData(text);
+          alert("Data restored successfully!");
+          window.location.reload();
         } catch (err) {
           console.error(err);
-          alert("Import parsed error.");
+          const message = err instanceof Error ? err.message : "Import failed.";
+          alert(`Import failed: ${message}`);
         }
       };
       reader.readAsText(file);
@@ -179,7 +210,7 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
                   max="9.0"
                   className="min-h-11 font-semibold tabular-nums"
                   aria-invalid={!!errors.targetListening}
-                  {...register("targetListening", { valueAsNumber: true })}
+                  {...registerSkill("targetListening")}
                 />
                 {errors.targetListening && <p className="text-xs text-destructive">{errors.targetListening.message}</p>}
               </div>
@@ -194,7 +225,7 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
                   max="9.0"
                   className="min-h-11 font-semibold tabular-nums"
                   aria-invalid={!!errors.targetReading}
-                  {...register("targetReading", { valueAsNumber: true })}
+                  {...registerSkill("targetReading")}
                 />
                 {errors.targetReading && <p className="text-xs text-destructive">{errors.targetReading.message}</p>}
               </div>
@@ -209,7 +240,7 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
                   max="9.0"
                   className="min-h-11 font-semibold tabular-nums"
                   aria-invalid={!!errors.targetWriting}
-                  {...register("targetWriting", { valueAsNumber: true })}
+                  {...registerSkill("targetWriting")}
                 />
                 {errors.targetWriting && <p className="text-xs text-destructive">{errors.targetWriting.message}</p>}
               </div>
@@ -224,7 +255,7 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
                   max="9.0"
                   className="min-h-11 font-semibold tabular-nums"
                   aria-invalid={!!errors.targetSpeaking}
-                  {...register("targetSpeaking", { valueAsNumber: true })}
+                  {...registerSkill("targetSpeaking")}
                 />
                 {errors.targetSpeaking && <p className="text-xs text-destructive">{errors.targetSpeaking.message}</p>}
               </div>
@@ -239,8 +270,18 @@ export default function SettingsClient({ goals, defaultTestType }: SettingsClien
                   max="9.0"
                   className="min-h-11 font-semibold tabular-nums sm:max-w-[calc(50%-0.625rem)]"
                   aria-invalid={!!errors.targetOverall}
-                  {...register("targetOverall", { valueAsNumber: true })}
+                  aria-describedby="targetOverall-hint"
+                  name={overallField.name}
+                  ref={overallField.ref}
+                  onBlur={overallField.onBlur}
+                  value={finiteBand(targetOverall) ?? ""}
+                  onChange={(event) => {
+                    void overallField.onChange(event);
+                  }}
                 />
+                <p id="targetOverall-hint" className="text-xs text-muted-foreground">
+                  Updates automatically from the four skill targets. You can still override it.
+                </p>
                 {errors.targetOverall && <p className="text-xs text-destructive">{errors.targetOverall.message}</p>}
               </div>
             </div>

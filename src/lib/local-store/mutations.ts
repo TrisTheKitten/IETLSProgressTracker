@@ -1,26 +1,16 @@
-import { z } from "zod";
-import {
-  attemptInputSchema,
-  backupPayloadSchema,
-  customPracticeSetInputSchema,
-  goalsInputSchema,
-  practiceSetDetailsInputSchema,
-  practiceSetEventSchema,
-  testTypeSchema,
+import type {
+  AttemptInput,
+  CustomPracticeSetInput,
+  GoalsInput,
+  PracticeSetDetailsInput,
+  PracticeSetEvent,
+  TestType,
 } from "@/lib/domain";
 import { statusAfterAttemptCount, statusAfterPracticeSetEvent } from "@/lib/practice-set-lifecycle";
+import { generateId, nextBookId } from "./ids";
+import { backupFromAppData, parseBackupJson } from "./normalize";
 import { createInitialAppData, ensureCambridgeCatalogueUpToDate } from "./seed";
 import type { AppData, AttemptRecord, PracticeSetRecord } from "./types";
-
-const idSchema = z.uuid();
-
-function generateId() {
-  return crypto.randomUUID();
-}
-
-function nextBookId(data: AppData): number {
-  return data.books.reduce((max, book) => Math.max(max, book.id), 0) + 1;
-}
 
 function updateSetStatus(sets: PracticeSetRecord[], setId: string, status: PracticeSetRecord["status"]) {
   return sets.map((set) => (set.id === setId ? { ...set, status } : set));
@@ -30,30 +20,29 @@ function attemptCountForSet(attempts: AttemptRecord[], setId: string) {
   return attempts.filter((attempt) => attempt.practiceSetId === setId).length;
 }
 
-export function saveAttempt(data: AppData, input: unknown): { data: AppData; id: string } {
-  const parsed = attemptInputSchema.parse(input);
-  const attemptId = parsed.id ?? generateId();
+export function saveAttempt(data: AppData, input: AttemptInput): { data: AppData; id: string } {
+  const attemptId = input.id ?? generateId();
 
-  const previous = parsed.id
-    ? data.attempts.find((attempt) => attempt.id === parsed.id)
+  const previous = input.id
+    ? data.attempts.find((attempt) => attempt.id === input.id)
     : undefined;
 
-  if (parsed.id && !previous) throw new Error("Practice attempt not found");
+  if (input.id && !previous) throw new Error("Practice attempt not found");
 
   const values: Omit<AttemptRecord, "id"> = {
-    practiceSetId: parsed.practiceSetId ?? null,
-    date: parsed.date,
-    skill: parsed.skill,
-    rawScore: parsed.rawScore ?? null,
-    bandScore: parsed.bandScore,
-    notes: parsed.notes ?? null,
-    duration: parsed.duration ?? null,
+    practiceSetId: input.practiceSetId ?? null,
+    date: input.date,
+    skill: input.skill,
+    rawScore: input.rawScore ?? null,
+    bandScore: input.bandScore,
+    notes: input.notes ?? null,
+    duration: input.duration ?? null,
   };
 
   let attempts: AttemptRecord[];
-  if (parsed.id) {
+  if (input.id) {
     attempts = data.attempts.map((attempt) =>
-      attempt.id === parsed.id ? { id: attempt.id, ...values } : attempt,
+      attempt.id === input.id ? { id: attempt.id, ...values } : attempt,
     );
   } else {
     attempts = [...data.attempts, { id: attemptId, ...values }];
@@ -78,8 +67,7 @@ export function saveAttempt(data: AppData, input: unknown): { data: AppData; id:
   return { data: { ...data, attempts, sets }, id: attemptId };
 }
 
-export function deleteAttempt(data: AppData, input: unknown): AppData {
-  const id = idSchema.parse(input);
+export function deleteAttempt(data: AppData, id: string): AppData {
   const attempt = data.attempts.find((row) => row.id === id);
   if (!attempt) throw new Error("Practice attempt not found");
 
@@ -96,11 +84,9 @@ export function deleteAttempt(data: AppData, input: unknown): AppData {
 
 export function transitionPracticeSetStatus(
   data: AppData,
-  idInput: unknown,
-  eventInput: unknown,
+  id: string,
+  event: PracticeSetEvent,
 ): AppData {
-  const id = idSchema.parse(idInput);
-  const event = practiceSetEventSchema.parse(eventInput);
   const practiceSet = data.sets.find((set) => set.id === id);
   if (!practiceSet) throw new Error("Practice set not found");
 
@@ -110,11 +96,9 @@ export function transitionPracticeSetStatus(
 
 export function updatePracticeSetDetails(
   data: AppData,
-  idInput: unknown,
-  input: unknown,
+  id: string,
+  input: PracticeSetDetailsInput,
 ): AppData {
-  const id = idSchema.parse(idInput);
-  const parsed = practiceSetDetailsInputSchema.parse(input);
   if (!data.sets.some((set) => set.id === id)) {
     throw new Error("Practice set not found");
   }
@@ -122,27 +106,26 @@ export function updatePracticeSetDetails(
   return {
     ...data,
     sets: data.sets.map((set) =>
-      set.id === id ? { ...set, targetDate: parsed.targetDate ?? null } : set,
+      set.id === id ? { ...set, targetDate: input.targetDate ?? null } : set,
     ),
   };
 }
 
 export function createCustomPracticeSet(
   data: AppData,
-  input: unknown,
+  input: CustomPracticeSetInput,
 ): { data: AppData; id: string } {
-  const parsed = customPracticeSetInputSchema.parse(input);
   const setId = generateId();
-  const bookTitle = `Custom: ${parsed.bookName}`;
+  const bookTitle = `Custom: ${input.bookName}`;
 
   const existingBook = data.books.find(
-    (book) => book.title === bookTitle && book.isCustom === 1,
+    (book) => book.title === bookTitle && book.isCustom,
   );
 
   let books = data.books;
   let bookId = existingBook?.id;
   if (bookId == null) {
-    bookId = nextBookId(data);
+    bookId = nextBookId(data.books);
     books = [
       ...data.books,
       {
@@ -150,7 +133,7 @@ export function createCustomPracticeSet(
         number: 0,
         title: bookTitle,
         version: "Academic",
-        isCustom: 1,
+        isCustom: true,
       },
     ];
   }
@@ -160,39 +143,26 @@ export function createCustomPracticeSet(
     {
       id: setId,
       bookId,
-      testNumber: parsed.testNumber,
-      moduleSkill: parsed.moduleSkill,
+      testNumber: input.testNumber,
+      moduleSkill: input.moduleSkill,
       status: "To Practice",
-      targetDate: parsed.targetDate ?? null,
-      isCustom: 1,
+      targetDate: input.targetDate ?? null,
+      isCustom: true,
     },
   ];
 
   return { data: { ...data, books, sets }, id: setId };
 }
 
-export function saveStudyGoals(data: AppData, input: unknown): AppData {
-  const goals = goalsInputSchema.parse(input);
-  return {
-    ...data,
-    goals: [
-      ...data.goals.map((goal) => ({ ...goal, isActive: 0 as const })),
-      { id: generateId(), ...goals, isActive: 1 },
-    ],
-  };
+export function saveStudyGoals(data: AppData, goals: GoalsInput): AppData {
+  return { ...data, goals: { ...goals } };
 }
 
-export function updateAppSetting(
-  data: AppData,
-  keyInput: unknown,
-  valueInput: unknown,
-): AppData {
-  const key = z.literal("defaultTestType").parse(keyInput);
-  const value = testTypeSchema.parse(valueInput);
-  const settings = data.settings.some((row) => row.key === key)
-    ? data.settings.map((row) => (row.key === key ? { key, value } : row))
-    : [...data.settings, { key, value }];
-  return { ...data, settings };
+export function setDefaultTestType(data: AppData, value: TestType): AppData {
+  return {
+    ...data,
+    settings: { ...data.settings, defaultTestType: value },
+  };
 }
 
 export function exportData(data: AppData): string {
@@ -200,26 +170,15 @@ export function exportData(data: AppData): string {
     {
       version: 1,
       exportedAt: new Date().toISOString(),
-      data,
+      data: backupFromAppData(data),
     },
     null,
     2,
   );
 }
 
-export function importData(
-  jsonData: string,
-): { data: AppData; success: true } | { success: false; error: string } {
-  try {
-    const payload = backupPayloadSchema.parse(JSON.parse(jsonData));
-    return {
-      success: true,
-      data: ensureCambridgeCatalogueUpToDate(payload.data),
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid backup file";
-    return { success: false, error: message };
-  }
+export function importData(jsonData: string): AppData {
+  return ensureCambridgeCatalogueUpToDate(parseBackupJson(jsonData));
 }
 
 export function resetDatabase(): AppData {
