@@ -77,6 +77,7 @@ export function getDashboardView(data: AppData) {
     bookTitle: row.book.title,
     testNumber: row.set.testNumber || 0,
     targetDate: row.set.targetDate,
+    status: row.set.status,
   }));
 
   return {

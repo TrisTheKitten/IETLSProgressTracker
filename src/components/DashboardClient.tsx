@@ -10,11 +10,10 @@ import {
   Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import ScoreEntryDialog from "@/components/ScoreEntryDialog";
 import { useLocalStore } from "@/components/LocalStoreProvider";
 import { cn } from "@/lib/utils";
-import type { GoalsInput, Skill } from "@/lib/domain";
+import type { GoalsInput, PracticeSetStatus, Skill } from "@/lib/domain";
 
 interface Attempt {
   id: string;
@@ -35,6 +34,32 @@ interface PracticeSet {
   bookTitle: string;
   testNumber: number;
   targetDate: string | null;
+  status: PracticeSetStatus;
+}
+
+function shortBookTitle(title: string) {
+  return title.split(" (")[0];
+}
+
+function dueLabel(targetDate: string | null): { text: string; overdue: boolean } | null {
+  if (!targetDate) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(targetDate + "T00:00:00");
+  const diffDays = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+
+  if (diffDays < 0) {
+    return { text: diffDays === -1 ? "1 day overdue" : `${Math.abs(diffDays)} days overdue`, overdue: true };
+  }
+  if (diffDays === 0) return { text: "Due today", overdue: false };
+  if (diffDays === 1) return { text: "Due tomorrow", overdue: false };
+  if (diffDays <= 7) return { text: `Due in ${diffDays} days`, overdue: false };
+
+  return {
+    text: `Due ${due.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
+    overdue: false,
+  };
 }
 
 interface EditAttempt {
@@ -72,7 +97,7 @@ export default function DashboardClient({
   upcomingSets,
   goals,
 }: DashboardClientProps) {
-  const { deleteAttempt, transitionPracticeSetStatus } = useLocalStore();
+  const { deleteAttempt } = useLocalStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSet, setSelectedSet] = useState<{
     id: string;
@@ -81,6 +106,9 @@ export default function DashboardClient({
     testNumber: number;
   } | null>(null);
   const [editAttempt, setEditAttempt] = useState<EditAttempt | null>(null);
+
+  const [nextSet, ...queuedSets] = upcomingSets;
+  const nextDue = nextSet ? dueLabel(nextSet.targetDate) : null;
 
   const currentScores = useMemo(() => {
     const byName = Object.fromEntries(stats.skills.map((s) => [s.name, s.latest])) as Record<string, number>;
@@ -136,10 +164,6 @@ export default function DashboardClient({
       practiceSetId: attempt.practiceSetId,
     });
     setDialogOpen(true);
-  };
-
-  const handleToggleStatus = async (setId: string, checked: boolean) => {
-    await transitionPracticeSetStatus(setId, checked ? "start" : "plan");
   };
 
   const handleDeleteAttempt = async (id: string) => {
@@ -276,63 +300,103 @@ export default function DashboardClient({
               <h2 id="next-study-heading" className="font-heading text-2xl font-semibold tracking-tight text-foreground">
                 Next practice
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">All planned sets</p>
+              <p className="mt-1 text-sm text-muted-foreground">What to sit next</p>
             </div>
-            <span className="text-sm text-muted-foreground tabular-nums">{upcomingSets.length} planned</span>
+            <span className="text-sm text-muted-foreground tabular-nums">{upcomingSets.length} queued</span>
           </div>
 
-          {upcomingSets.length === 0 ? (
+          {upcomingSets.length === 0 || !nextSet ? (
             <div className="border-b border-border py-10">
-              <p className="font-heading text-xl font-medium text-foreground">Nothing planned yet.</p>
+              <p className="font-heading text-xl font-medium text-foreground">Nothing queued yet.</p>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                Choose a Cambridge set from the study checklist to give your next session a clear starting point.
+                Add a Cambridge set from the planner so your next session has a clear start.
               </p>
               <Link
                 href="/planner"
                 className="group/link mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Browse the catalogue{" "}
+                Open planner{" "}
                 <ArrowUpRight className="ui-hover-link-icon h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
           ) : (
             <div>
-              {upcomingSets.map((set) => (
-                <div
-                  key={set.id}
-                  className="group ui-hover-row flex items-start gap-3 border-b border-border py-4 pl-1"
-                >
-                  <Checkbox
-                    id={`set-${set.id}`}
-                    className="mt-0.5"
-                    onCheckedChange={(checked) => handleToggleStatus(set.id, !!checked)}
-                    aria-label={`Mark ${set.bookTitle}, test ${set.testNumber} in progress`}
-                  />
-                  <label htmlFor={`set-${set.id}`} className="min-w-0 flex-1 cursor-pointer">
-                    <span className="block text-sm font-semibold leading-5 text-foreground transition-colors group-hover:text-primary">
-                      {set.bookTitle}
-                    </span>
-                    <span className="mt-1 block text-sm text-muted-foreground">
-                      Test {set.testNumber} · {set.moduleSkill}
-                    </span>
-                    {set.targetDate && (
-                      <span className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                        Due {new Date(set.targetDate).toLocaleDateString()}
-                      </span>
-                    )}
-                  </label>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleLogScoreClick(set)}
-                    aria-label={`Log score for ${set.bookTitle}, test ${set.testNumber}`}
-                    className="ui-hover-actions min-h-11 min-w-11 shrink-0"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+              <article className="border-b border-border py-5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Up next</p>
+                  {nextSet.status === "In Progress" && (
+                    <span className="text-xs font-medium text-muted-foreground">In progress</span>
+                  )}
                 </div>
-              ))}
+                <h3 className="mt-2 font-heading text-3xl font-semibold tracking-tight text-foreground">
+                  {nextSet.moduleSkill}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {shortBookTitle(nextSet.bookTitle)} · Test {nextSet.testNumber}
+                </p>
+                {nextDue && (
+                  <p
+                    className={cn(
+                      "mt-3 flex items-center gap-1.5 text-sm",
+                      nextDue.overdue ? "font-medium text-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                    {nextDue.text}
+                  </p>
+                )}
+                <Button
+                  onClick={() => handleLogScoreClick(nextSet)}
+                  className="mt-5 min-h-11 w-full sm:w-auto"
+                >
+                  Log this score
+                </Button>
+              </article>
+
+              {queuedSets.length > 0 && (
+                <div>
+                  <p className="pt-5 pb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Then
+                  </p>
+                  {queuedSets.map((set) => {
+                    const due = dueLabel(set.targetDate);
+                    return (
+                      <div
+                        key={set.id}
+                        className="group ui-hover-row flex items-center gap-3 border-b border-border py-3.5 pl-1"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
+                            {set.moduleSkill}
+                            <span className="font-normal text-muted-foreground"> · Test {set.testNumber}</span>
+                          </p>
+                          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                            {shortBookTitle(set.bookTitle)}
+                            {set.status === "In Progress" ? " · In progress" : ""}
+                            {due ? ` · ${due.text}` : ""}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLogScoreClick(set)}
+                          className="min-h-10 shrink-0 px-3"
+                        >
+                          Log
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <Link
+                href="/planner"
+                className="group/link mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Manage queue in planner
+                <ArrowUpRight className="ui-hover-link-icon h-4 w-4" aria-hidden="true" />
+              </Link>
             </div>
           )}
         </section>
