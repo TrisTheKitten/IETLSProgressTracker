@@ -81,29 +81,3 @@ export function SetRankingCard({
     </article>
   );
 }
-
-export function InsightCard({ label, value, skill, score, detail }: {
-  label: string;
-  value?: string;
-  skill?: Skill;
-  score?: number;
-  detail: string;
-}) {
-  const SkillIcon = skill ? SKILL_ICONS[skill] : null;
-  const displayValue = skill ?? value ?? "";
-  return (
-    <article className="ui-hover-cell flex min-w-0 items-start gap-4 py-6 first:md:pr-8 last:md:pl-8">
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <div className="flex min-h-8 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            {SkillIcon && <SkillIcon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />}
-            <p className="truncate font-serif text-xl font-semibold text-foreground">{displayValue}</p>
-          </div>
-          {score !== undefined && <span className="w-12 shrink-0 text-right font-serif text-3xl font-semibold tabular-nums leading-none text-foreground">{score.toFixed(1)}</span>}
-        </div>
-        <p className="max-w-md text-xs leading-5 text-muted-foreground">{detail}</p>
-      </div>
-    </article>
-  );
-}

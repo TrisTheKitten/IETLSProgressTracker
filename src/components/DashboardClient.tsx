@@ -294,17 +294,7 @@ export default function DashboardClient({
       </section>
 
       <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.35fr)] lg:gap-14">
-        <section aria-labelledby="next-study-heading">
-          <div className="flex items-end justify-between gap-4 border-b border-foreground pb-3">
-            <div>
-              <h2 id="next-study-heading" className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-                Next practice
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">What to sit next</p>
-            </div>
-            <span className="text-sm text-muted-foreground tabular-nums">{upcomingSets.length} queued</span>
-          </div>
-
+        <section>
           {upcomingSets.length === 0 || !nextSet ? (
             <div className="border-b border-border py-10">
               <p className="font-heading text-xl font-medium text-foreground">Nothing queued yet.</p>
@@ -345,12 +335,15 @@ export default function DashboardClient({
                     {nextDue.text}
                   </p>
                 )}
-                <Button
-                  onClick={() => handleLogScoreClick(nextSet)}
-                  className="mt-5 min-h-11 w-full sm:w-auto"
-                >
-                  Log this score
-                </Button>
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                  <Button
+                    onClick={() => handleLogScoreClick(nextSet)}
+                    className="min-h-11 w-full sm:w-auto"
+                  >
+                    Log this score
+                  </Button>
+                  <span className="text-sm text-muted-foreground tabular-nums">{upcomingSets.length} queued</span>
+                </div>
               </article>
 
               {queuedSets.length > 0 && (

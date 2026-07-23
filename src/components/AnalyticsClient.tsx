@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import BandProgressChart from "@/components/BandProgressChart";
 import { cn } from "@/lib/utils";
 import { SKILLS, goalTargetForSkill, type GoalsInput, type Skill } from "@/lib/domain";
-import { InsightCard, SetRankingCard, type SetSummary } from "@/components/analytics/AnalyticsCards";
+import { SetRankingCard, type SetSummary } from "@/components/analytics/AnalyticsCards";
 
 interface AttemptData {
   id: string;
@@ -115,16 +115,6 @@ export default function AnalyticsClient({
   }));
 
   const trackedSkills = skills.filter((s) => s.stats.count > 0);
-  const strongest =
-    trackedSkills.length > 0
-      ? [...trackedSkills].sort((a, b) => b.stats.latest - a.stats.latest)[0]
-      : null;
-  const belowTarget = trackedSkills
-    .filter((s) => s.stats.gap > 0)
-    .sort((a, b) => b.stats.gap - a.stats.gap);
-  const focusSkill =
-    belowTarget.find((s) => s.name !== strongest?.name) ?? belowTarget[0] ?? null;
-  const focusIsDistinct = Boolean(focusSkill && strongest && focusSkill.name !== strongest.name);
 
   const hasBestSets = SKILL_NAMES.some((skill) => bestSetsBySkill[skill].length > 0);
   const hasWorstSets = SKILL_NAMES.some((skill) => worstSetsBySkill[skill].length > 0);
@@ -331,47 +321,6 @@ export default function AnalyticsClient({
             <div>
               <BandProgressChart data={progressData} targetOverall={goals.targetOverall} />
             </div>
-          )}
-
-          {trackedSkills.length > 0 && strongest && (
-            <section
-              aria-label="Key insights"
-              className="grid divide-y divide-border border-y border-border md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] md:divide-x md:divide-y-0"
-            >
-              <InsightCard
-                label="Strongest right now"
-                skill={strongest.name}
-                score={strongest.stats.latest}
-                detail={`Avg ${strongest.stats.average.toFixed(1)} · ${strongest.stats.count} session${strongest.stats.count === 1 ? "" : "s"}`}
-              />
-              {focusIsDistinct && focusSkill ? (
-                <InsightCard
-                  label="Best place to focus"
-                  skill={focusSkill.name}
-                  score={focusSkill.stats.latest}
-                  detail={`${focusSkill.stats.gap.toFixed(1)} below ${focusSkill.stats.target.toFixed(1)} target`}
-                />
-              ) : skillsTracked < 4 ? (
-                <InsightCard
-                  label="Next unlock"
-                  value="Log remaining skills"
-                  detail="Add all four skills to unlock your overall band curve and richer insights."
-                />
-              ) : focusSkill ? (
-                <InsightCard
-                  label="Keep pushing"
-                  skill={focusSkill.name}
-                  score={focusSkill.stats.latest}
-                  detail={`Still ${focusSkill.stats.gap.toFixed(1)} below ${focusSkill.stats.target.toFixed(1)} — your top skill has room to grow`}
-                />
-              ) : (
-                <InsightCard
-                  label="Targets looking good"
-                  value="All skills on target"
-                  detail="Keep practicing to hold your scores and push the overall higher."
-                />
-              )}
-            </section>
           )}
 
           <section
