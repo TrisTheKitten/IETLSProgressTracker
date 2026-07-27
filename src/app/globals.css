@@ -135,7 +135,10 @@
     min-height: 100dvh;
     @apply bg-background text-foreground antialiased;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-serif);
     text-wrap: balance;
   }
@@ -227,6 +230,17 @@
     .group:focus-within .ui-hover-actions {
       opacity: 1;
     }
+  }
+
+  /* Empty-chart graph paper — ledger measurement grid, drawn with hairlines. */
+  .ledger-graph-paper {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 43px,
+      color-mix(in oklch, var(--border) 70%, transparent) 43px,
+      color-mix(in oklch, var(--border) 70%, transparent) 44px
+    );
   }
 }
 
