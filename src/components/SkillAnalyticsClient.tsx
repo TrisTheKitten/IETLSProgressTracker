@@ -10,9 +10,7 @@ import {
   MessageCircle,
   PenLine,
   Pencil,
-  Target,
   Trash2,
-  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,9 +23,14 @@ import {
 } from "@/components/ui/select";
 import BandProgressChart from "@/components/BandProgressChart";
 import ScoreEntryDialog from "@/components/ScoreEntryDialog";
-import { SetRankingCard, type SetSummary } from "@/components/analytics/AnalyticsCards";
 import { useLocalStore } from "@/components/LocalStoreProvider";
-import { SKILLS, goalTargetForSkill, type GoalsInput, type Skill } from "@/lib/domain";
+import {
+  SKILLS,
+  goalTargetForSkill,
+  type GoalsInput,
+  type Skill,
+} from "@/lib/domain";
+import { bandScoreDistribution } from "@/lib/stats";
 
 type SessionLogSort = "date" | "set";
 
@@ -73,8 +76,6 @@ interface SkillAnalyticsClientProps {
   skill: Skill;
   attempts: AttemptData[];
   goals: GoalsInput;
-  bestSets: SetSummary[];
-  worstSets: SetSummary[];
   skillProgress: SkillPoint[];
   allAttempts: ScoreSnapshot[];
 }
@@ -143,8 +144,6 @@ export default function SkillAnalyticsClient({
   skill,
   attempts,
   goals,
-  bestSets,
-  worstSets,
   skillProgress,
   allAttempts,
 }: SkillAnalyticsClientProps) {
@@ -176,16 +175,14 @@ export default function SkillAnalyticsClient({
       ? `All ${skill.toLowerCase()} sessions, newest first`
       : `All ${skill.toLowerCase()} sessions, by practice set`;
 
-  const bestSetsBySkill = useMemo(() => {
-    const bySkill = Object.fromEntries(SKILLS.map((s) => [s, [] as SetSummary[]])) as Record<Skill, SetSummary[]>;
-    bySkill[skill] = bestSets;
-    return bySkill;
-  }, [skill, bestSets]);
-  const worstSetsBySkill = useMemo(() => {
-    const bySkill = Object.fromEntries(SKILLS.map((s) => [s, [] as SetSummary[]])) as Record<Skill, SetSummary[]>;
-    bySkill[skill] = worstSets;
-    return bySkill;
-  }, [skill, worstSets]);
+  const distribution = useMemo(
+    () => bandScoreDistribution(attempts.map((attempt) => attempt.bandScore)),
+    [attempts],
+  );
+  const maxBandCount = Math.max(
+    0,
+    ...distribution.counts.map((entry) => entry.count),
+  );
 
   const currentScores = useMemo(() => {
     const latestBySkill = new Map<Skill, { date: string; band: number }>();
@@ -229,8 +226,6 @@ export default function SkillAnalyticsClient({
     }
   };
 
-  const hasBestSets = bestSets.length > 0;
-  const hasWorstSets = worstSets.length > 0;
   const hasAttempts = attempts.length > 0;
 
   return (
@@ -245,7 +240,10 @@ export default function SkillAnalyticsClient({
         </Link>
         <div className="space-y-2">
           <div className="flex items-center gap-2.5">
-            <Icon className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+            <Icon
+              className="h-5 w-5 shrink-0 text-primary"
+              aria-hidden="true"
+            />
             <p className="text-xs font-medium text-primary">Skill detail</p>
           </div>
           <h1 className="font-serif text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl">
@@ -253,7 +251,7 @@ export default function SkillAnalyticsClient({
           </h1>
           <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-[15px]">
             {hasAttempts
-              ? `${stats.count} session${stats.count === 1 ? "" : "s"} logged · trajectory, set rankings, and full practice record`
+              ? `${stats.count} session${stats.count === 1 ? "" : "s"} logged · trajectory, band spread, and full practice record`
               : "No sessions logged yet — add a score to start tracking this skill"}
           </p>
         </div>
@@ -280,40 +278,49 @@ export default function SkillAnalyticsClient({
             valueLabel={skill}
           />
 
-          {(hasBestSets || hasWorstSets) && (
-            <section aria-labelledby="skill-rankings-title" className="space-y-5">
-              <div className="space-y-0.5">
-                <p className="text-xs font-medium text-primary">Session record</p>
-                <h2 id="skill-rankings-title" className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  Practice set rankings
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-                <SetRankingCard
-                  title="Best sessions"
-                  setsBySkill={bestSetsBySkill}
-                  hasSets={hasBestSets}
-                  emptyIcon={Trophy}
+          <section
+            aria-labelledby="band-distribution-title"
+            className="space-y-5"
+          >
+            <div className="space-y-0.5">
+              <p className="text-xs font-medium text-primary">Session record</p>
+              <h2
+                id="band-distribution-title"
+                className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+              >
+                Band distribution
+              </h2>
+              <p className="pt-1 text-sm text-muted-foreground">
+                How often each score shows up in your log
+              </p>
+            </div>
+            <ol className="flex items-stretch gap-2 overflow-x-auto border-y border-border py-7 sm:gap-3 sm:py-8">
+              {[...distribution.counts].reverse().map((entry) => (
+                <BandCountColumn
+                  key={entry.band}
+                  band={entry.band}
+                  count={entry.count}
+                  maxCount={maxBandCount}
+                  totalCount={attempts.length}
                 />
-                <SetRankingCard
-                  title="Needs attention"
-                  setsBySkill={worstSetsBySkill}
-                  hasSets={hasWorstSets}
-                  emptyIcon={Target}
-                />
-              </div>
-            </section>
-          )}
+              ))}
+            </ol>
+          </section>
         </>
       )}
 
       <section aria-labelledby="session-log-title">
         <div className="flex flex-col gap-4 border-b border-foreground pb-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <h2 id="session-log-title" className="font-serif text-2xl font-semibold tracking-tight text-foreground">
+            <h2
+              id="session-log-title"
+              className="font-serif text-2xl font-semibold tracking-tight text-foreground"
+            >
               Session log
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">{sessionLogSubtitle}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {sessionLogSubtitle}
+            </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
             {hasAttempts && (
@@ -341,15 +348,26 @@ export default function SkillAnalyticsClient({
                 </Select>
               </div>
             )}
-            <span className="text-sm text-muted-foreground tabular-nums">{attempts.length} logged</span>
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {attempts.length} logged
+            </span>
           </div>
         </div>
 
         {attempts.length === 0 ? (
           <div className="border-b border-border py-10">
-            <p className="font-serif text-xl font-semibold text-foreground">No {skill.toLowerCase()} sessions yet</p>
-            <p className="mt-2 text-sm text-muted-foreground">Log a practice score to start your record.</p>
-            <Button render={<Link href="/" />} nativeButton={false} className="mt-5" size="sm">
+            <p className="font-serif text-xl font-semibold text-foreground">
+              No {skill.toLowerCase()} sessions yet
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Log a practice score to start your record.
+            </p>
+            <Button
+              render={<Link href="/" />}
+              nativeButton={false}
+              className="mt-5"
+              size="sm"
+            >
               Log a score
               <ArrowRight data-icon="inline-end" />
             </Button>
@@ -368,7 +386,9 @@ export default function SkillAnalyticsClient({
                     {attempt.bandScore.toFixed(1)}
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-foreground">{attempt.skill}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {attempt.skill}
+                    </h3>
                     <p className="mt-1 truncate text-sm text-muted-foreground">
                       {attempt.practiceSetId
                         ? `${attempt.bookTitle} · Test ${attempt.testNumber}`
@@ -384,7 +404,9 @@ export default function SkillAnalyticsClient({
                       })}
                     </p>
                     {attempt.notes && (
-                      <p className="mt-3 text-sm leading-6 text-muted-foreground">{attempt.notes}</p>
+                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                        {attempt.notes}
+                      </p>
                     )}
                   </div>
                   <div className="ui-hover-actions flex shrink-0 items-start gap-1">
@@ -431,5 +453,67 @@ function MiniStat({ label, value }: { label: string; value: string }) {
         {value}
       </dd>
     </div>
+  );
+}
+
+function BandCountColumn({
+  band,
+  count,
+  maxCount,
+  totalCount,
+}: {
+  band: number;
+  count: number;
+  maxCount: number;
+  totalCount: number;
+}) {
+  const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
+  const sharePercent =
+    totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
+  const sessionLabel = count === 1 ? "session" : "sessions";
+  const isMode = count === maxCount && count > 0;
+
+  return (
+    <li
+      className="group flex min-w-[4.75rem] flex-1 flex-col items-center sm:min-w-[5.5rem]"
+      aria-label={`Band ${band.toFixed(1)}, ${count} ${sessionLabel}, ${sharePercent} percent of log`}
+    >
+      <div
+        className="flex h-44 w-full flex-col pt-7 sm:h-52"
+        aria-hidden="true"
+      >
+        <div className="relative min-h-0 flex-1">
+          <div
+            className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-[3.25rem] min-h-2 sm:max-w-14"
+            style={{ height: `${heightPercent}%` }}
+          >
+            <span
+              className={`absolute -top-6 left-1/2 -translate-x-1/2 font-serif text-lg font-semibold tabular-nums leading-none sm:text-xl ${
+                isMode ? "text-primary" : "text-foreground"
+              }`}
+            >
+              {count}
+            </span>
+            <div
+              className={`h-full w-full transition-[filter] duration-200 ${
+                isMode
+                  ? "band-freq-bar-mode"
+                  : "band-freq-bar group-hover:brightness-95"
+              }`}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="w-full border-t border-border pt-3 text-center">
+        <p className="font-serif text-xl font-semibold tabular-nums leading-none text-foreground sm:text-2xl">
+          {band.toFixed(1)}
+        </p>
+        <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">
+          {isMode
+            ? `most logged · ${sharePercent}%`
+            : `${sharePercent}% of sessions`}
+        </p>
+      </div>
+    </li>
   );
 }

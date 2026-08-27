@@ -242,6 +242,25 @@
       color-mix(in oklch, var(--border) 70%, transparent) 44px
     );
   }
+
+  /* Frequency columns — stacked session ticks on the IELTS scale. */
+  .band-freq-bar {
+    background-color: color-mix(in oklch, var(--primary) 32%, transparent);
+    background-image: repeating-linear-gradient(
+      to top,
+      transparent 0 9px,
+      color-mix(in oklch, var(--primary) 55%, transparent) 9px 10px
+    );
+  }
+
+  .band-freq-bar-mode {
+    background-color: var(--primary);
+    background-image: repeating-linear-gradient(
+      to top,
+      transparent 0 9px,
+      color-mix(in oklch, var(--primary-foreground) 22%, transparent) 9px 10px
+    );
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

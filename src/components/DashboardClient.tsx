@@ -2,13 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import {
-  Calendar,
-  ArrowUpRight,
-  Plus,
-  Trash2,
-  Pencil,
-} from "lucide-react";
+import { Calendar, ArrowUpRight, Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ScoreEntryDialog from "@/components/ScoreEntryDialog";
 import { useLocalStore } from "@/components/LocalStoreProvider";
@@ -41,7 +35,9 @@ function shortBookTitle(title: string) {
   return title.split(" (")[0];
 }
 
-function dueLabel(targetDate: string | null): { text: string; overdue: boolean } | null {
+function dueLabel(
+  targetDate: string | null,
+): { text: string; overdue: boolean } | null {
   if (!targetDate) return null;
 
   const today = new Date();
@@ -50,7 +46,13 @@ function dueLabel(targetDate: string | null): { text: string; overdue: boolean }
   const diffDays = Math.round((due.getTime() - today.getTime()) / 86_400_000);
 
   if (diffDays < 0) {
-    return { text: diffDays === -1 ? "1 day overdue" : `${Math.abs(diffDays)} days overdue`, overdue: true };
+    return {
+      text:
+        diffDays === -1
+          ? "1 day overdue"
+          : `${Math.abs(diffDays)} days overdue`,
+      overdue: true,
+    };
   }
   if (diffDays === 0) return { text: "Due today", overdue: false };
   if (diffDays === 1) return { text: "Due tomorrow", overdue: false };
@@ -111,7 +113,9 @@ export default function DashboardClient({
   const nextDue = nextSet ? dueLabel(nextSet.targetDate) : null;
 
   const currentScores = useMemo(() => {
-    const byName = Object.fromEntries(stats.skills.map((s) => [s.name, s.latest])) as Record<string, number>;
+    const byName = Object.fromEntries(
+      stats.skills.map((s) => [s.name, s.latest]),
+    ) as Record<string, number>;
     const pick = (n: string) => {
       const v = byName[n];
       return v && v > 0 ? v : null;
@@ -124,9 +128,8 @@ export default function DashboardClient({
     };
   }, [stats.skills]);
 
-  const skillsWithScore = stats.skills.filter((s) => s.latest && s.latest > 0).length;
-  const isProvisional = skillsWithScore > 0 && skillsWithScore < 4;
-  const isTargetMet = stats.overallBand > 0 && stats.overallBand >= goals.targetOverall;
+  const isTargetMet =
+    stats.overallBand > 0 && stats.overallBand >= goals.targetOverall;
 
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
@@ -172,9 +175,8 @@ export default function DashboardClient({
     }
   };
 
-  const overallPosition = stats.overallBand > 0
-    ? Math.min(100, (stats.overallBand / 9) * 100)
-    : 0;
+  const overallPosition =
+    stats.overallBand > 0 ? Math.min(100, (stats.overallBand / 9) * 100) : 0;
 
   return (
     <div className="space-y-10 text-left">
@@ -188,27 +190,28 @@ export default function DashboardClient({
             Keep the next session clear and the long-term band goal in view.
           </p>
         </div>
-        <Button onClick={() => handleLogScoreClick()} className="min-h-11 w-full shrink-0 sm:w-auto">
+        <Button
+          render={<Link href="/planner" />}
+          nativeButton={false}
+          className="min-h-11 w-full shrink-0 sm:w-auto"
+        >
           <Plus data-icon="inline-start" />
           Log practice score
         </Button>
       </header>
 
-      <section aria-labelledby="current-band-heading" className="border-y border-border">
+      <section
+        aria-labelledby="current-band-heading"
+        className="border-y border-border"
+      >
         <div className="grid lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.7fr)]">
           <div className="px-5 py-7 sm:px-7 sm:py-9 lg:border-r lg:border-border lg:px-10 ui-hover-cell">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="current-band-heading" className="text-sm font-semibold text-foreground">
-                Estimated overall band
-              </h2>
-              <span className={cn("text-sm", isProvisional ? "text-amber-700" : "text-muted-foreground")}>
-                {skillsWithScore === 0
-                  ? "Waiting for your first score"
-                  : isProvisional
-                    ? `Provisional · ${skillsWithScore} of 4 skills`
-                    : "All skills represented"}
-              </span>
-            </div>
+            <h2
+              id="current-band-heading"
+              className="text-sm font-semibold text-foreground"
+            >
+              Estimated overall band
+            </h2>
 
             <div className="mt-7 flex flex-wrap items-end gap-x-6 gap-y-3">
               <span className="font-heading text-7xl font-semibold leading-[0.8] tracking-[-0.06em] text-foreground tabular-nums sm:text-8xl">
@@ -217,7 +220,13 @@ export default function DashboardClient({
               <div className="pb-1 text-sm leading-6 text-muted-foreground">
                 <p>Target band {goals.targetOverall.toFixed(1)}</p>
                 {stats.overallBand > 0 && (
-                  <p className={isTargetMet ? "font-medium text-emerald-700" : "font-medium text-primary"}>
+                  <p
+                    className={
+                      isTargetMet
+                        ? "font-medium text-emerald-700"
+                        : "font-medium text-primary"
+                    }
+                  >
                     {isTargetMet
                       ? "Target reached"
                       : `${(goals.targetOverall - stats.overallBand).toFixed(1)} band to close`}
@@ -241,7 +250,9 @@ export default function DashboardClient({
                 />
                 <span
                   className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-foreground/60"
-                  style={{ left: `${Math.min(100, (goals.targetOverall / 9) * 100)}%` }}
+                  style={{
+                    left: `${Math.min(100, (goals.targetOverall / 9) * 100)}%`,
+                  }}
                 />
               </div>
               <div className="mt-2 flex justify-between font-mono text-xs text-muted-foreground tabular-nums">
@@ -254,18 +265,23 @@ export default function DashboardClient({
 
           <div className="grid grid-cols-2 border-t border-border lg:grid-cols-1 lg:border-t-0">
             <div className="ui-hover-cell px-5 py-6 sm:px-7 lg:px-8 lg:py-8">
-              <p className="text-sm text-muted-foreground">Catalogue completed</p>
+              <p className="text-sm text-muted-foreground">
+                Catalogue completed
+              </p>
               <p className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground tabular-nums">
                 {stats.completionPct}%
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">{stats.completionRatio} sets</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {stats.completionRatio} sets
+              </p>
             </div>
             <div className="ui-hover-cell border-l border-border px-5 py-6 sm:px-7 lg:border-l-0 lg:border-t lg:px-8 lg:py-8">
-              <p className="text-sm text-muted-foreground">Current evidence</p>
-              <p className="mt-2 font-heading text-4xl font-semibold tracking-tight text-foreground tabular-nums">
+              <p className="font-heading text-4xl font-semibold tracking-tight text-foreground tabular-nums">
                 {recentAttempts.length}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">logged sessions</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                logged sessions
+              </p>
             </div>
           </div>
         </div>
@@ -278,12 +294,16 @@ export default function DashboardClient({
                 "ui-hover-cell flex items-baseline justify-between gap-4 px-5 py-4 sm:px-6",
                 index % 2 === 1 && "sm:border-l sm:border-border",
                 index > 1 && "border-t border-border lg:border-t-0",
-                index > 0 && "lg:border-l lg:border-border"
+                index > 0 && "lg:border-l lg:border-border",
               )}
             >
               <div>
-                <p className="text-sm font-medium text-foreground">{skill.name}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Target {skill.target.toFixed(1)}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {skill.name}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Target {skill.target.toFixed(1)}
+                </p>
               </div>
               <span className="font-heading text-2xl font-semibold text-foreground tabular-nums">
                 {skill.latest > 0 ? skill.latest.toFixed(1) : "—"}
@@ -297,38 +317,51 @@ export default function DashboardClient({
         <section>
           {upcomingSets.length === 0 || !nextSet ? (
             <div className="border-b border-border py-10">
-              <p className="font-heading text-xl font-medium text-foreground">Nothing queued yet.</p>
+              <p className="font-heading text-xl font-medium text-foreground">
+                Nothing queued yet.
+              </p>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                Add a Cambridge set from the planner so your next session has a clear start.
+                Add a Cambridge set from the planner so your next session has a
+                clear start.
               </p>
               <Link
                 href="/planner"
                 className="group/link mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Open planner{" "}
-                <ArrowUpRight className="ui-hover-link-icon h-4 w-4" aria-hidden="true" />
+                <ArrowUpRight
+                  className="ui-hover-link-icon h-4 w-4"
+                  aria-hidden="true"
+                />
               </Link>
             </div>
           ) : (
             <div>
               <article className="border-b border-border py-5">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Up next</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">
+                    Up next
+                  </p>
                   {nextSet.status === "In Progress" && (
-                    <span className="text-xs font-medium text-muted-foreground">In progress</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      In progress
+                    </span>
                   )}
                 </div>
                 <h3 className="mt-2 font-heading text-3xl font-semibold tracking-tight text-foreground">
                   {nextSet.moduleSkill}
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {shortBookTitle(nextSet.bookTitle)} · Test {nextSet.testNumber}
+                  {shortBookTitle(nextSet.bookTitle)} · Test{" "}
+                  {nextSet.testNumber}
                 </p>
                 {nextDue && (
                   <p
                     className={cn(
                       "mt-3 flex items-center gap-1.5 text-sm",
-                      nextDue.overdue ? "font-medium text-primary" : "text-muted-foreground"
+                      nextDue.overdue
+                        ? "font-medium text-primary"
+                        : "text-muted-foreground",
                     )}
                   >
                     <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
@@ -342,7 +375,9 @@ export default function DashboardClient({
                   >
                     Log this score
                   </Button>
-                  <span className="text-sm text-muted-foreground tabular-nums">{upcomingSets.length} queued</span>
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {upcomingSets.length} queued
+                  </span>
                 </div>
               </article>
 
@@ -361,11 +396,16 @@ export default function DashboardClient({
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
                             {set.moduleSkill}
-                            <span className="font-normal text-muted-foreground"> · Test {set.testNumber}</span>
+                            <span className="font-normal text-muted-foreground">
+                              {" "}
+                              · Test {set.testNumber}
+                            </span>
                           </p>
                           <p className="mt-0.5 truncate text-sm text-muted-foreground">
                             {shortBookTitle(set.bookTitle)}
-                            {set.status === "In Progress" ? " · In progress" : ""}
+                            {set.status === "In Progress"
+                              ? " · In progress"
+                              : ""}
                             {due ? ` · ${due.text}` : ""}
                           </p>
                         </div>
@@ -388,7 +428,10 @@ export default function DashboardClient({
                 className="group/link mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Manage queue in planner
-                <ArrowUpRight className="ui-hover-link-icon h-4 w-4" aria-hidden="true" />
+                <ArrowUpRight
+                  className="ui-hover-link-icon h-4 w-4"
+                  aria-hidden="true"
+                />
               </Link>
             </div>
           )}
@@ -397,18 +440,29 @@ export default function DashboardClient({
         <section aria-labelledby="practice-history-heading">
           <div className="flex items-end justify-between gap-4 border-b border-foreground pb-3">
             <div>
-              <h2 id="practice-history-heading" className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+              <h2
+                id="practice-history-heading"
+                className="font-heading text-2xl font-semibold tracking-tight text-foreground"
+              >
                 Practice record
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">Most recent sessions first</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Most recent sessions first
+              </p>
             </div>
-            <span className="text-sm text-muted-foreground tabular-nums">{recentAttempts.length} logged</span>
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {recentAttempts.length} logged
+            </span>
           </div>
 
           {recentAttempts.length === 0 ? (
             <div className="border-b border-border py-10">
-              <p className="font-heading text-xl font-medium text-foreground">No sessions recorded.</p>
-              <p className="mt-2 text-sm text-muted-foreground">Log a practice score to start your record.</p>
+              <p className="font-heading text-xl font-medium text-foreground">
+                No sessions recorded.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Log a practice score to start your record.
+              </p>
             </div>
           ) : (
             <div className="max-h-[34rem] overflow-y-auto pr-1">
@@ -424,7 +478,9 @@ export default function DashboardClient({
                       {attempt.bandScore.toFixed(1)}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-foreground">{attempt.skill}</h3>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {attempt.skill}
+                      </h3>
                       <p className="mt-1 truncate text-sm text-muted-foreground">
                         {attempt.practiceSetId
                           ? `${attempt.bookTitle} · Test ${attempt.testNumber}`
@@ -440,7 +496,9 @@ export default function DashboardClient({
                         })}
                       </p>
                       {attempt.notes && (
-                        <p className="mt-3 text-sm leading-6 text-muted-foreground">{attempt.notes}</p>
+                        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                          {attempt.notes}
+                        </p>
                       )}
                     </div>
                     <div className="ui-hover-actions flex shrink-0 items-start gap-1">

@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  CheckSquare,
-  BarChart2,
-  Settings,
-  Menu,
-  X,
-} from "lucide-react";
+import { Home, CheckSquare, BarChart2, Settings, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -42,14 +35,16 @@ function NavLink({
         "group relative flex items-center gap-3 px-5 py-2.5 text-[0.84rem] tracking-[0.01em] transition-[color,background-color] duration-200 ease-out focus-visible:bg-sidebar-accent",
         isActive
           ? "bg-sidebar-accent/55 font-semibold text-sidebar-primary"
-          : "font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/45 hover:text-sidebar-foreground"
+          : "font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/45 hover:text-sidebar-foreground",
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
           "absolute inset-y-2 left-0 w-px bg-sidebar-primary transition-[opacity,transform] duration-200 ease-out",
-          isActive ? "scale-y-100 opacity-100" : "scale-y-75 opacity-0 group-hover:scale-y-100 group-hover:opacity-40"
+          isActive
+            ? "scale-y-100 opacity-100"
+            : "scale-y-75 opacity-0 group-hover:scale-y-100 group-hover:opacity-40",
         )}
       />
       <Icon
@@ -59,11 +54,27 @@ function NavLink({
           "h-4 w-4 shrink-0 transition-[color,transform] duration-200 ease-out",
           isActive
             ? "text-sidebar-primary"
-            : "text-sidebar-foreground/45 group-hover:translate-x-0.5 group-hover:text-sidebar-foreground/70"
+            : "text-sidebar-foreground/45 group-hover:translate-x-0.5 group-hover:text-sidebar-foreground/70",
         )}
       />
       <span>{label}</span>
     </Link>
+  );
+}
+
+const brandMarkClassName =
+  "grid h-9 w-9 shrink-0 place-items-center border border-sidebar-primary/40 font-serif text-sm font-semibold tracking-[-0.03em] text-sidebar-primary transition-[border-color,transform,background-color] duration-200 ease-out";
+
+function BrandWordmark() {
+  return (
+    <span className="min-w-0 leading-none">
+      <span className="block truncate font-serif text-[1.15rem] font-semibold tracking-[-0.025em]">
+        IELTS tracker
+      </span>
+      <span className="mt-1.5 block truncate text-[0.68rem] font-medium tracking-[0.04em] text-sidebar-foreground/55">
+        Cambridge practice ledger
+      </span>
+    </span>
   );
 }
 
@@ -74,17 +85,15 @@ function Brand() {
       className="group flex min-w-0 items-center gap-3 text-sidebar-foreground"
       aria-label="IELTS tracker dashboard"
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center border border-sidebar-primary/40 font-serif text-sm font-semibold tracking-[-0.03em] text-sidebar-primary transition-[border-color,transform,background-color] duration-200 ease-out group-hover:scale-[1.03] group-hover:border-sidebar-primary group-hover:bg-sidebar-accent/40">
+      <span
+        className={cn(
+          brandMarkClassName,
+          "group-hover:scale-[1.03] group-hover:border-sidebar-primary group-hover:bg-sidebar-accent/40",
+        )}
+      >
         IT
       </span>
-      <span className="min-w-0 leading-none">
-        <span className="block truncate font-serif text-[1.15rem] font-semibold tracking-[-0.025em]">
-          IELTS tracker
-        </span>
-        <span className="mt-1.5 block truncate text-[0.68rem] font-medium tracking-[0.04em] text-sidebar-foreground/55">
-          Cambridge practice ledger
-        </span>
-      </span>
+      <BrandWordmark />
     </Link>
   );
 }
@@ -108,7 +117,8 @@ export default function SidebarNav() {
     if (!isOpen) return;
 
     const previousOverflow = document.body.style.overflow;
-    const firstLink = mobileNavRef.current?.querySelector<HTMLAnchorElement>("a");
+    const firstLink =
+      mobileNavRef.current?.querySelector<HTMLAnchorElement>("a");
     const menuButton = menuButtonRef.current;
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
 
@@ -140,13 +150,15 @@ export default function SidebarNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border bg-sidebar px-5 lg:hidden">
-        <Brand />
+      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border bg-sidebar px-5 lg:hidden">
         <button
           ref={menuButtonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="ml-4 border-l border-sidebar-border py-1 pl-4 text-sidebar-foreground/65 transition-colors hover:text-sidebar-foreground"
+          className={cn(
+            brandMarkClassName,
+            "hover:scale-[1.03] hover:border-sidebar-primary hover:bg-sidebar-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-primary/50",
+          )}
           aria-label={isOpen ? "Close navigation" : "Open navigation"}
           aria-expanded={isOpen}
           aria-controls="mobile-navigation"
@@ -157,6 +169,13 @@ export default function SidebarNav() {
             <Menu aria-hidden="true" className="h-5 w-5" strokeWidth={1.5} />
           )}
         </button>
+        <Link
+          href="/"
+          className="min-w-0 text-sidebar-foreground"
+          aria-label="IELTS tracker dashboard"
+        >
+          <BrandWordmark />
+        </Link>
       </header>
 
       {isOpen && (
@@ -178,7 +197,7 @@ export default function SidebarNav() {
         inert={!isOpen}
         className={cn(
           "fixed bottom-0 left-0 top-16 z-40 flex w-[min(19rem,88vw)] transform flex-col border-r border-sidebar-border bg-sidebar px-6 pb-7 pt-6 transition-transform duration-200 ease-out lg:hidden",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <nav aria-label="Mobile" className="-mx-1 space-y-1">

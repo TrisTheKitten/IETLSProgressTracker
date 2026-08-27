@@ -28,8 +28,6 @@ export default function SkillAnalyticsPage() {
       skill={view.skill}
       attempts={view.attempts}
       goals={view.goals}
-      bestSets={view.bestSets}
-      worstSets={view.worstSets}
       skillProgress={view.skillProgress}
       allAttempts={view.allAttempts}
     />

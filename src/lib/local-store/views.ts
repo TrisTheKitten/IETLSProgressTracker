@@ -13,7 +13,10 @@ import {
 import type { AppData } from "./types";
 
 function formatChartDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function getDashboardView(data: AppData) {
@@ -45,8 +48,12 @@ export function getDashboardView(data: AppData) {
     speaking: latestScores.Speaking,
   });
 
-  const syllabusSets = getSyllabusSetsForTestType(data, defaultTestType).map((row) => row.set);
-  const completedSets = syllabusSets.filter((set) => set.status === "Completed");
+  const syllabusSets = getSyllabusSetsForTestType(data, defaultTestType).map(
+    (row) => row.set,
+  );
+  const completedSets = syllabusSets.filter(
+    (set) => set.status === "Completed",
+  );
   const completionRatio = `${completedSets.length}/${syllabusSets.length}`;
   const completionPct =
     syllabusSets.length > 0
@@ -71,14 +78,16 @@ export function getDashboardView(data: AppData) {
     completedSets: skillCompletedCounts[skillName],
   }));
 
-  const upcomingSets = getUpcomingSetsForTestType(data, defaultTestType).map((row) => ({
-    id: row.set.id,
-    moduleSkill: row.set.moduleSkill,
-    bookTitle: row.book.title,
-    testNumber: row.set.testNumber || 0,
-    targetDate: row.set.targetDate,
-    status: row.set.status,
-  }));
+  const upcomingSets = getUpcomingSetsForTestType(data, defaultTestType).map(
+    (row) => ({
+      id: row.set.id,
+      moduleSkill: row.set.moduleSkill,
+      bookTitle: row.book.title,
+      testNumber: row.set.testNumber || 0,
+      targetDate: row.set.targetDate,
+      status: row.set.status,
+    }),
+  );
 
   return {
     recentAttempts,
@@ -145,7 +154,13 @@ function buildSetSummaries(
 ): SetSummary[] {
   const setScoreMap: Record<
     string,
-    { sum: number; count: number; bookTitle: string; testNumber: number; skill: Skill }
+    {
+      sum: number;
+      count: number;
+      bookTitle: string;
+      testNumber: number;
+      skill: Skill;
+    }
   > = {};
 
   for (const row of rows) {
@@ -213,7 +228,12 @@ export function getAnalyticsView(data: AppData) {
     a.attempt.date.localeCompare(b.attempt.date),
   );
   const latestAsOf: Record<string, number> = {};
-  const progressData: { index: number; dateStr: string; overall: number; fullDate: string }[] = [];
+  const progressData: {
+    index: number;
+    dateStr: string;
+    overall: number;
+    fullDate: string;
+  }[] = [];
   let progressIndex = 0;
 
   for (const row of ascAttempts) {
@@ -247,7 +267,10 @@ export function getAnalyticsView(data: AppData) {
         }));
       return [skill, points];
     }),
-  ) as Record<Skill, { index: number; dateStr: string; fullDate: string; band: number }[]>;
+  ) as Record<
+    Skill,
+    { index: number; dateStr: string; fullDate: string; band: number }[]
+  >;
 
   return {
     attempts,
@@ -262,7 +285,9 @@ export function getAnalyticsView(data: AppData) {
 export function getSkillAnalyticsView(data: AppData, skill: Skill) {
   const goals = getActiveGoals(data);
   const attemptsRaw = getAttemptsWithSetAndBook(data);
-  const skillAttemptsRaw = attemptsRaw.filter((row) => row.attempt.skill === skill);
+  const skillAttemptsRaw = attemptsRaw.filter(
+    (row) => row.attempt.skill === skill,
+  );
   const ascAttempts = [...skillAttemptsRaw].sort((a, b) =>
     a.attempt.date.localeCompare(b.attempt.date),
   );
@@ -290,15 +315,6 @@ export function getSkillAnalyticsView(data: AppData, skill: Skill) {
     band: row.attempt.bandScore,
   }));
 
-  const setSummaries = buildSetSummaries(skillAttemptsRaw);
-  const perSkillLimit = 3;
-  const bestSets = [...setSummaries]
-    .sort((a, b) => b.averageScore - a.averageScore)
-    .slice(0, perSkillLimit);
-  const worstSets = [...setSummaries]
-    .sort((a, b) => a.averageScore - b.averageScore)
-    .slice(0, perSkillLimit);
-
   const allAttempts = attemptsRaw.map((row) => ({
     skill: row.attempt.skill,
     date: row.attempt.date,
@@ -309,8 +325,6 @@ export function getSkillAnalyticsView(data: AppData, skill: Skill) {
     skill,
     attempts,
     goals,
-    bestSets,
-    worstSets,
     skillProgress,
     allAttempts,
   };
