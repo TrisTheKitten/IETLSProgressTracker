@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import ActivityMatrix from "@/components/ActivityMatrix";
 import BandProgressChart from "@/components/BandProgressChart";
 import { cn } from "@/lib/utils";
 import {
@@ -37,7 +38,7 @@ import { useCountUp, usePrefersReducedMotion } from "@/lib/hooks";
 
 interface AttemptData {
   id: string;
-  skill: string;
+  skill: Skill;
   date: string;
   bandScore: number;
   rawScore: number | null;
@@ -416,6 +417,8 @@ export default function AnalyticsClient({
               </div>
             )}
           </section>
+
+          <ActivityMatrix attempts={attempts} />
 
           {hasProgress && (
             <div>

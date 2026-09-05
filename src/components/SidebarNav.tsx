@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, CheckSquare, BarChart2, Settings, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SKILLS } from "@/lib/domain";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -95,6 +96,54 @@ function Brand() {
       </span>
       <BrandWordmark />
     </Link>
+  );
+}
+
+function skillAnalyticsHref(skill: (typeof SKILLS)[number]) {
+  return `/analytics/${skill.toLowerCase()}`;
+}
+
+function SkillAnalyticsLinks({
+  className,
+  onNavigate,
+}: {
+  className?: string;
+  onNavigate?: () => void;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <nav
+      aria-label="Skill analytics"
+      className={cn(
+        "border-t border-sidebar-border pt-5 font-serif text-sm italic leading-relaxed text-sidebar-foreground/55",
+        className,
+      )}
+    >
+      {SKILLS.map((skill, index) => {
+        const href = skillAnalyticsHref(skill);
+        const isActive = pathname === href;
+
+        return (
+          <span key={skill}>
+            {index > 0 ? <span aria-hidden="true"> · </span> : null}
+            <Link
+              href={href}
+              onClick={onNavigate}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "rounded-sm transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-primary/50",
+                isActive
+                  ? "text-sidebar-primary"
+                  : "hover:text-sidebar-foreground",
+              )}
+            >
+              {skill}
+            </Link>
+          </span>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -211,9 +260,7 @@ export default function SidebarNav() {
           ))}
         </nav>
 
-        <p className="mt-auto border-t border-sidebar-border pt-5 font-serif text-sm italic leading-relaxed text-sidebar-foreground/55">
-          Listening · Reading · Writing · Speaking
-        </p>
+        <SkillAnalyticsLinks className="mt-auto" onNavigate={closeMenu} />
       </aside>
 
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-sidebar-border lg:bg-sidebar lg:px-6 lg:pb-7 lg:pt-8 xl:w-72 xl:px-8 xl:pt-10">
@@ -231,9 +278,7 @@ export default function SidebarNav() {
           ))}
         </nav>
 
-        <p className="border-t border-sidebar-border pt-5 font-serif text-sm italic leading-relaxed text-sidebar-foreground/55">
-          Listening · Reading · Writing · Speaking
-        </p>
+        <SkillAnalyticsLinks />
       </aside>
     </>
   );

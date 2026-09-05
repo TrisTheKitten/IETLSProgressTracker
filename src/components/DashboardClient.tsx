@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Calendar, ArrowUpRight, Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ActivityMatrix from "@/components/ActivityMatrix";
 import ScoreEntryDialog from "@/components/ScoreEntryDialog";
 import { useLocalStore } from "@/components/LocalStoreProvider";
 import { cn } from "@/lib/utils";
@@ -312,6 +313,8 @@ export default function DashboardClient({
           ))}
         </div>
       </section>
+
+      <ActivityMatrix attempts={recentAttempts} />
 
       <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.35fr)] lg:gap-14">
         <section>
